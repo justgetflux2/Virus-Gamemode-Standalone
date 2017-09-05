@@ -40,7 +40,7 @@ function GM:Initialize()
 		additive = false,
 	})
 
-    surface.CreateFont( "fuckhd", {
+	surface.CreateFont( "fuckhd", {
 		font = "reactor-sans",
 		size = 28,
 		weight = 200,
@@ -173,14 +173,6 @@ function GM:Think()
 		GAMEMODE:AddNotify( "to everyone by touching them", NOTIFY_HINT, 7)
 	end
 end
-
-function ShowObjectives(msg)
-		GAMEMODE:AddNotify( "You must avoid touching the infected(they have green flames)", NOTIFY_HINT, 13 )
-		GAMEMODE:AddNotify( "in any way you can, run or kill", NOTIFY_HINT, 13 )
-		GAMEMODE:AddNotify( "if you get infected you must spread the virus as fast as possible", NOTIFY_HINT, 13 )
-		GAMEMODE:AddNotify( "by simply touching uninfected people", NOTIFY_HINT, 13 )
-end
-usermessage.Hook("ShowObjectives", ShowObjectives)
 
 function changeMessage( um )
 	GAMEMODE.message = um:ReadString( )
@@ -330,23 +322,24 @@ hook.Add( "Think", "Think_infectedglow", function()
 	end
 end)
 
-local function DrawRound()
-	if LocalPlayer( ):GetNWInt("Virus") == 0 then
+local function drawRoundHUD()
+	local xOffset = ScrW() / 10 * 9
+
+	if LocalPlayer():GetNWInt("Virus") == 0 then
 		surface.SetMaterial(RoundHud)
 		surface.SetDrawColor(Color(255, 255, 255, 255))
-		surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255))
-	elseif LocalPlayer( ):GetNWInt("Virus") == 1 then
+		surface.DrawTexturedRect(xOffset - 15, 15, 120, 120, Color(41, 128, 185, 255))
+	elseif LocalPlayer():GetNWInt("Virus") == 1 then
 		surface.SetMaterial(RoundHudInfected)
 		surface.SetDrawColor(Color(255, 255, 255, 255))
-		surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255)) -- I will be fixing the placements
+		surface.DrawTexturedRect(xOffset - 15, 15, 120, 120, Color(41, 128, 185, 255))
 	end
 
-   draw.DrawText(currentRound.number, "Small", ScrW() / 2, 25,
-   	   Color(255,255,255,255),
-   	   TEXT_ALIGN_CENTER)
+	draw.DrawText(currentRound.number, "Small", xOffset + 1, 50 + 1, Color(0, 0, 0, 255))
+	draw.DrawText(currentRound.number, "Small", xOffset, 50, Color(255, 255, 255, 255))
 end
 
-hook.Add("HUDPaint", "DrawRound", DrawRound)
+hook.Add("HUDPaint", "drawRoundHUD", drawRoundHUD)
 
 net.Receive("Virus updateCurrentRound", function()
     currentRound.number = net.ReadInt(2)
