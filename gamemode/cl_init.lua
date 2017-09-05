@@ -1,14 +1,21 @@
 include( "shared.lua" )
 include( "cl_notice.lua" )
 
+local InfectedClock = Material("gmod_tower/virus/hud_infected_time")
+local Clock = Material("gmod_tower/virus/hud_survivor_time")
+local RoundHudInfected  = Material("gmod_tower/virus/hud_infected_time")
+local RoundHud = Material("gmod_tower/virus/hud_survivor_time")
+local RadarHudInfected  = Material("gmod_tower/virus/hud_infected_rank")
+local RadarHud = Material("gmod_tower/virus/hud_survivor_radar")
+local ScoreHudInfected  = Material("gmod_tower/virus/hud_infected_score")
+local ScoreHud = Material("gmod_tower/virus/hud_survivor_scor")
+local RankHudIfected  = Material("gmod_tower/virus/hud_infected_rank")
+local RankHud = Material("gmod_tower/virus/hud_survivor_rank")
 
-
-
-local InfectedClock = Material("gmod_tower/virus/hud_infected_time") 
-local Clock = Material("gmod_tower/virus/hud_survivor_time")  
 local config = {
 	roundTime = 110 -- 180 by default
 }
+
 local currentRound = {
 	   number = 1,
 	   playerList = {},
@@ -51,23 +58,23 @@ end
 function GM:PlayerBindPress( ply, bind, pressed )
 	if not pressed then return false end
 
-	if ( bind == "+zoom" ) then 
+	if (bind == "+zoom") then
 		return true
 	end
 
-    if ( bind == "+speed" ) then 
+    if (bind == "+speed") then
 		return true
 	end
 
-    if ( bind == "+jump" ) then 
+    if (bind == "+jump") then
 		return true
 	end
 
-    if ( bind == "+duck" ) then 
+    if (bind == "+duck") then
 		return true
 	end
-	
-	if(bind == "+menu") then
+
+	if (bind == "+menu") then
 		RunConsoleCommand("lastinv")
 		return true
 	end
@@ -78,11 +85,11 @@ function GM:GetFallDamage( ply, speed )
 end
 
 function GM:HUDWeaponPickedUp( Weapon )
-    return false
+	return false
 end
 
 function GM:PlayerCanPickupItem( ply, item )
- return false
+	return false
 end
 
 function ImportantText( text )
@@ -144,9 +151,6 @@ function DrawClock()
 	local separator = ":"
 	if secs < 10 then separator = ":0" end
 
-	--[[draw.DrawText("Time Left:", "Small", ScrW() / 2, 10,
-		Color(255,255,0,255),
-		TEXT_ALIGN_CENTER)]]
 if LocalPlayer( ):GetNWInt("Virus") == 0 then
 surface.SetMaterial(Clock)
 surface.SetDrawColor(Color(255, 255, 255, 255))
@@ -192,7 +196,7 @@ usermessage.Hook("VirusRoundMusic", VirusMusicTest)
 
 function SurvivorsWin( um )
 surface.PlaySound( "gmodtower/virus/roundend_survivors.mp3")
---surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
+surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
 surface.PlaySound("gmodtower/virus/ui/menu.wav")
 end
 usermessage.Hook("SurvivorsWin", SurvivorsWin)
@@ -209,6 +213,7 @@ local function initialiseRoundTimer()
 		GAMEMODE.timeLeft = GAMEMODE.timeLeft - 1
 
 		if GAMEMODE.timeLeft == 0 then
+			surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
 			timer.Remove("Virus roundTimerDecrementer")
 		end
 	end)
@@ -306,7 +311,7 @@ hook.Add("CalcView", "ThirdPerson.CalcView", ThirdPerson.CalcView)
 ---
 --Layer: 1
 -- Move this OUT of the HUDPaint hook in order to make sure your HUD is efficient
---local Texture1 = Material("gmod_tower/virus/hud_survivor_ammo") 
+--local Texture1 = Material("gmod_tower/virus/hud_survivor_ammo")
 --[[surface.SetMaterial(Texture1)
 surface.SetDrawColor(Color(41, 128, 185, 255))
 surface.DrawTexturedRect(ScrW()-260, ScrH()-125, 200, 120, Color(41, 128, 185, 255))]]
@@ -323,51 +328,29 @@ hook.Add( "Think", "Think_infectedglow", function()
 		infectedglow.Size = 90
 		infectedglow.DieTime = CurTime() + 1
 	end
-end )
+end)
 
---[[local hide = {
-	CHudHealth = true,
-	CHudBattery = true,
-CHudAmmo = true,
-CHudSecondaryAmmo = true,
-}
+local function DrawRound()
+	if LocalPlayer( ):GetNWInt("Virus") == 0 then
+		surface.SetMaterial(RoundHud)
+		surface.SetDrawColor(Color(255, 255, 255, 255))
+		surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255))
+	elseif LocalPlayer( ):GetNWInt("Virus") == 1 then
+		surface.SetMaterial(RoundHudInfected)
+		surface.SetDrawColor(Color(255, 255, 255, 255))
+		surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255)) -- I will be fixing the placements
+	end
 
-hook.Add( "HUDShouldDraw", "HideHUD", function( name )
-	if ( hide[ name ] ) then return false end
-
-	-- Don't return anything here, it may break other addons that rely on this hook.
-end )]]
-
---[[function DrawRound()
-
-local RoundHudInfected  = Material("gmod_tower/virus/hud_infected_time") 
-local RoundHud = Material("gmod_tower/virus/hud_survivor_time")  
-
-
-if LocalPlayer( ):GetNWInt("Virus") == 0 then
-surface.SetMaterial(RoundHud)
-surface.SetDrawColor(Color(255, 255, 255, 255))
---surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
-surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255))
-
-elseif LocalPlayer( ):GetNWInt("Virus") == 1 then
-surface.SetMaterial(RoundHudInfected)
-surface.SetDrawColor(Color(255, 255, 255, 255))
---surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
-surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255))
-
-end
-	   draw.DrawText(currentRound.number, "Small", ScrW() / 2, 25,
-	   	   Color(255,255,255,255),
-	   	   TEXT_ALIGN_CENTER)
-
+   draw.DrawText(currentRound.number, "Small", ScrW() / 2, 25,
+   	   Color(255,255,255,255),
+   	   TEXT_ALIGN_CENTER)
 end
 
-hook.Add( "HUDPaint", "DrawRound",DrawRound)
+hook.Add("HUDPaint", "DrawRound", DrawRound)
 
 net.Receive("Virus updateCurrentRound", function()
     currentRound.number = net.ReadInt(2)
-end)]]
+end)
 
 --[[net.Receive("Virus RoundMusic", function()
     --currentRound.number = net.ReadInt(2)
@@ -375,32 +358,3 @@ end)]]
     --surface.PlaySound( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3" )
     sound.Play( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3" )
 end)]]
-
--- drugs and shiz --
-local function AdrenalineGetMotionBlurValues( x, y, fwd, spin )
-if (CLIENT) then
-	if LocalPlayer():GetNWInt("ColorShade_AD") > 0 then
-	return 0, 0, LocalPlayer():GetNWInt("ColorShade_AD"), 0
-end
-end
-end
-hook.Add( "GetMotionBlurValues", "AdrenalineGetMotionBlurValues", AdrenalineGetMotionBlurValues )
-
-local function AdrenalineSE()
-	local tab = {}
-	if LocalPlayer():GetNWInt("ColorShadeADR") >= 0 then
-
-		tab[ "$pp_colour_addr" ] 		= LocalPlayer():GetNWInt("ColorShade_ADR")
-		tab[ "$pp_colour_addg" ] 		= 0
-		tab[ "$pp_colour_addb" ] 		= 0
-		tab[ "$pp_colour_brightness" ] 	= 0
-		tab[ "$pp_colour_contrast" ] 	= 1
-		tab[ "$pp_colour_colour" ] 		= 1
-		tab[ "$pp_colour_mulg" ] 		= 0
-		tab[ "$pp_colour_mulr" ] 		= 0
-		tab[ "$pp_colour_mulb" ] 		= 0
-		
-		DrawColorModify( tab );
-end
-end
-hook.Add( "RenderScreenspaceEffects", "AdrenalineSE", AdrenalineSE )
