@@ -179,16 +179,23 @@ local function delayedGetPlace() // Must be delayed because setting NW Ints take
 	return 0
 end
 
+local firedOnce = false // TODO Change this immediataely
+
 local function drawRoundEndPhase()
+	if firedOnce then return end
+
 	place = place or delayedGetPlace()
 
 	local ending = "th"
-	if place % 10 == 1 then ending = "st";end
-	if place % 10 == 2 then ending = "nd";end
-	if place % 10 == 3 then ending = "rd";end
+	if place % 10 == 1 then ending = "st" end
+	if place % 10 == 2 then ending = "nd" end
+	if place % 10 == 3 then ending = "rd" end
 
 	if place != 0 then
+		firedOnce = true
 		playGamemodeMessage(place .. ending .. " Place")
+	else
+		timer.Simple(0.1, drawRoundEndPhase)
 	end
 
 	if !transitionStarted then
@@ -328,7 +335,7 @@ hook.Add("Think", "Virus infectedGlow", function() // TODO Move out of think hoo
 		infectedglow.r = 70
 		infectedglow.g = 255
 		infectedglow.b = 70
-		infectedglow.brightness = 40
+		infectedglow.brightness = 8
 		infectedglow.Decay = 100
 		infectedglow.Size = 90
 		infectedglow.DieTime = CurTime() + 1
