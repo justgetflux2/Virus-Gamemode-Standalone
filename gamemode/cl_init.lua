@@ -103,10 +103,6 @@ function GM:PlayerCanPickupItem( ply, item )
 	return false
 end
 
-function drawImportantMessage()
-	draw.DrawText(GAMEMODE.message, "VirusHUD", ScrW() / 2, ScrH() / 2 + 120, Color(255,255,255,200),TEXT_ALIGN_CENTER)
-end
-
 local pendingMessages = {}
 local currentlyPlayingMessage = false
 
@@ -122,21 +118,24 @@ local function playGamemodeMessage(msg)
 		table.RemoveByValue(pendingMessages, msg)
 	end
 
-	local msgText = vgui.Create("DLabel")
-	msgText:SetPos(ScrW(), ScrH() / 2)
-	msgText:SetText(msg)
-	msgText:SizeToContents()
-	msgText:SetContentAlignment(TEXT_ALIGN_CENTER)
-	msgText:SetFont("Important")
-	msgText:SetAlpha(0)
+	surface.SetFont("Important")
+	local maxWidth = surface.GetTextSize(msg)
 
-	msgText:MoveTo(ScrW() / 2,ScrH() / 2,1,0,1)
+	local msgText = vgui.Create("DLabel")
+	msgText:SetPos(ScrW(), ScrH() / 2 - 20)
+	msgText:SetText(msg)
+	msgText:SetFont("Important")
+	msgText:SetSize(800,400)
+	msgText:SetAlpha(0)
+	msgText:SizeToContents()
+
+	msgText:MoveTo(ScrW() / 2 - maxWidth / 2,ScrH() / 2 - 20,1,0,1)
 	msgText:AlphaTo(255,0.5)
 
-	msgText:MoveTo(0,ScrH() / 2,1,3,1)
-	msgText:AlphaTo(0,0.5,3)
+	msgText:MoveTo(0,ScrH() / 2 - 20,1,2,1)
+	msgText:AlphaTo(0,0.5,2)
 
-	timer.Simple(6, function()
+	timer.Simple(3, function() // Messages take 3 seconds.
 		msgText:Remove()
 		currentlyPlayingMessage = false
 
@@ -170,7 +169,10 @@ local function drawRoundEndPhase()
 	if place % 10 == 2 then ending = "nd";end
 	if place % 10 == 3 then ending = "rd";end
 
-	if place != 0 then ImportantText( place .. ending .. " Place" ) end
+	if place != 0 then
+		playGamemodeMessage(place .. ending .. " Place")
+	end
+
 	if !transitionStarted then
 		timer.Simple(3, function()
 			roundEndPhase = false
@@ -246,7 +248,6 @@ function GM:HUDPaint()
 		drawClock()
 		drawRoundNumber()
 		drawAmmo()
-		drawImportantMessage()
 		//self:PaintNotes
 		//drawPendingHUDNotes() // TODO: Reimplement HUD notes.
 	end

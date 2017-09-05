@@ -229,26 +229,19 @@ end
 function setupPhase()
 	timer.Create("minPlayerCheckLoop", 2, 0, function()
 		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			sendGamemodeMessage("Get ready for Round " .. currentRound.number, false, false)
+			sendGamemodeMessage("Get ready for Round " .. currentRound.number)
 
 			for k, ply in pairs(player.GetAll()) do
 				ply:Respawn()
 			end
 
-			timer.Simple(2, function()
-				sendGamemodeMessage("Ready!")
-			end)
+			sendGamemodeMessage("Ready!")
+			sendGamemodeMessage("Set!")
 
-			timer.Simple(3, preparationBridge)
-
+			timer.Simple(9, roundStart)
 			timer.Remove("minPlayerCheckLoop")
 		end
 	end)
-end
-
-function preparationBridge()
-	sendGamemodeMessage("Set!")
-	timer.Simple(1, roundStart)
 end
 
 util.AddNetworkString("Virus sendStartGUIRoundTimers")
@@ -257,6 +250,19 @@ local function startClientsideRoundTimers()
 	net.Start("Virus sendStartGUIRoundTimers")
 	net.WriteInt(config.roundTime, 3)
 	net.Broadcast()
+end
+
+local function checkRoundState()
+	local playerList = player.GetAll()
+
+	if currentRound.noOfInfected == 0 && playerList != nil then
+		local randomPlayer = playerList[math.random(1, #playerList)]
+		generateFirstInfected() // TODO What happens when there is 1 player left and they get infected?
+	end
+
+	if currentRound.noOfPlayers == currentRound.noOfInfected then
+		roundFinish(true)
+	end
 end
 
 local gracedPlayer
@@ -308,7 +314,6 @@ function roundStart()
 
 	sendGamemodeMessage("You're infected, take down the survivors!", false, true)
 	sendGamemodeMessage("You're a survivor. Take down the infected!", true, false)
-	sendGamemodeMessage("The round has begun!", false, false)
 
 	startClientsideRoundTimers()
 
@@ -318,19 +323,6 @@ function roundStart()
 
 	umsg.Start("VirusRoundMusic") // TODO Change to net messages
 	umsg.End()
-end
-
-local function checkRoundState()
-	local playerList = player.GetAll()
-
-	if currentRound.noOfInfected == 0 && playerList != nil then
-		local randomPlayer = playerList[math.random(1, #playerList)]
-		generateFirstInfected() // TODO What happens when there is 1 player left and they get infected?
-	end
-
-	if currentRound.noOfPlayers == currentRound.noOfInfected then
-		roundFinish(true)
-	end
 end
 
 function GM:PlayerDisconnected(ply)
