@@ -12,6 +12,8 @@ local modelname = player_manager.TranslatePlayerModel( model )]]
 Virus = { }				//infected players list
 ModName = "Virus"
 
+print("Hello world")
+
 local config = {
 	roundTime = 110
 }
