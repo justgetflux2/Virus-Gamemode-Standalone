@@ -9,8 +9,6 @@ util.AddNetworkString("Virus RoundMusic")
 --[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) // TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]
 
-print("Hello world")
-
 Virus = { }				//infected players list
 ModName = "Virus"
 
