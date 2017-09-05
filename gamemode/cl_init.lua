@@ -68,22 +68,22 @@ function GM:Initialize()
 	GAMEMODE.LastState = 0
 end
 
-function GM:PlayerBindPress( ply, bind, pressed )
+function GM:PlayerBindPress(ply, bind, pressed)
 	if not pressed then return false end
 
 	if (bind == "+zoom") then
 		return true
 	end
 
-    if (bind == "+speed") then
+	if (bind == "+speed") then
 		return true
 	end
 
-    if (bind == "+jump") then
+	if (bind == "+jump") then
 		return true
 	end
 
-    if (bind == "+duck") then
+	if (bind == "+duck") then
 		return true
 	end
 
@@ -145,14 +145,14 @@ local function drawRoundEndPhase()
 end
 
 function GM:HUDPaint()
-	self.BaseClass:HUDPaint( ) -- TODO: Stop using the base class HUD paint and do something else.
-	if roundEndPhase then -- TODO: we should try to handle the states another way.
+	self.BaseClass:HUDPaint() // TODO: Stop using the base class HUD paint and do something else.
+	if roundEndPhase then // TODO: we should try to handle the states another way.
 		drawRoundEndPhase()
 	else
 		DrawClock()
 		ImportantText(GAMEMODE.message)
-		--self:PaintNotes
-		--drawPendingHUDNotes() -- TODO: Reimplement HUD notes.
+		//self:PaintNotes
+		//drawPendingHUDNotes() // TODO: Reimplement HUD notes.
 	end
 end
 
@@ -164,22 +164,23 @@ function DrawClock()
 	local separator = ":"
 	if secs < 10 then separator = ":0" end
 
-if LocalPlayer( ):GetNWInt("Virus") == 0 then
-surface.SetMaterial(Clock)
-surface.SetDrawColor(Color(255, 255, 255, 255))
-surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
-elseif LocalPlayer( ):GetNWInt("Virus") == 1 then
-surface.SetMaterial(InfectedClock)
-surface.SetDrawColor(Color(255, 255, 255, 255))
-surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
-end
+	if LocalPlayer( ):GetNWInt("Virus") == 0 then
+		surface.SetMaterial(materials.clock.normal)
+		surface.SetDrawColor(Color(255, 255, 255, 255))
+		surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
+	elseif LocalPlayer( ):GetNWInt("Virus") == 1 then
+		surface.SetMaterial(materials.clock.infected)
+		surface.SetDrawColor(Color(255, 255, 255, 255))
+		surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
+	end
+
 	draw.DrawText(mins .. separator .. secs, "Small", ScrW() / 2, 25,
 		Color(255,255,255,255),
 		TEXT_ALIGN_CENTER)
 end
 
 function GM:Think()
-	local state = GAMEMODE.LastState -- TODO: What is going on here? Redo the LastState variable.
+	local state = GAMEMODE.LastState // TODO: What is going on here? Redo the LastState variable.
 	GAMEMODE.LastState = LocalPlayer( ):GetNWInt( "Virus" )
 	if GAMEMODE.LastState != state then
 		GAMEMODE:AddNotify( "You have been infected, You must spread the virus", NOTIFY_HINT, 7)
@@ -194,20 +195,20 @@ end
 usermessage.Hook("impText", changeMessage)
 
 function VirusMusicTest( um )
-surface.PlaySound( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3")
-surface.PlaySound("gmodtower/virus/stinger.mp3")
+	surface.PlaySound( "gmodtower/virus/roundplay" .. math.random(1,5) .. ".mp3")
+	surface.PlaySound("gmodtower/virus/stinger.mp3")
 end
 usermessage.Hook("VirusRoundMusic", VirusMusicTest)
 
 function SurvivorsWin( um )
-surface.PlaySound( "gmodtower/virus/roundend_survivors.mp3")
-surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
-surface.PlaySound("gmodtower/virus/ui/menu.wav")
+	surface.PlaySound( "gmodtower/virus/roundend_survivors.mp3")
+	surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
+	surface.PlaySound("gmodtower/virus/ui/menu.wav")
 end
 usermessage.Hook("SurvivorsWin", SurvivorsWin)
 
 function VirusWaitForInfected( um )
-surface.PlaySound("gmodtower/virus/waiting_forinfection"..math.random(1,8)..".mp3")
+	surface.PlaySound("gmodtower/virus/waiting_forinfection"..math.random(1,8)..".mp3")
 end
 usermessage.Hook("VirusWaitForInfected", VirusWaitForInfected)
 
@@ -234,8 +235,9 @@ CreateClientConVar("chasecam_smooth", 1, true, false)
 CreateClientConVar("chasecam_smoothscale", 0.2, true, false)
 
 local ThirdPerson = {}
+
 -- I apologize for copying all of this code from something else.
-function ThirdPerson.CalcView(player, pos, angles, fov)
+function ThirdPerson.CalcView(player, pos, angles, fov) // TODO Preen
 	local smooth = GetConVarNumber("chasecam_smooth")
 	local smoothscale = GetConVarNumber("chasecam_smoothscale")
 	if player:GetNWInt("thirdperson") == 1 then
@@ -321,9 +323,10 @@ hook.Add("CalcView", "ThirdPerson.CalcView", ThirdPerson.CalcView)
 surface.SetDrawColor(Color(41, 128, 185, 255))
 surface.DrawTexturedRect(ScrW()-260, ScrH()-125, 200, 120, Color(41, 128, 185, 255))]]
 
-hook.Add( "Think", "Think_infectedglow", function()
-	local infectedglow = DynamicLight( LocalPlayer():EntIndex() )
-	if ( infectedglow ) and LocalPlayer( ):GetNWInt("Virus") == 1 then
+hook.Add("Think", "Virus infectedGlow", function() // TODO Move out of think hook, change how this works. It's likely only one variable has to be updated per frame.
+	local infectedglow = DynamicLight(LocalPlayer():EntIndex())
+
+	if infectedglow and LocalPlayer():GetNWInt("Virus") == 1 then
 		infectedglow.pos = LocalPlayer():GetShootPos()
 		infectedglow.r = 70
 		infectedglow.g = 255
@@ -339,11 +342,11 @@ local function drawRoundHUD()
 	local xOffset = ScrW() / 10 * 9
 
 	if LocalPlayer():GetNWInt("Virus") == 0 then
-		surface.SetMaterial(RoundHud)
+		surface.SetMaterial(materials.round.normal)
 		surface.SetDrawColor(Color(255, 255, 255, 255))
 		surface.DrawTexturedRect(xOffset - 15, 15, 120, 120, Color(41, 128, 185, 255))
 	elseif LocalPlayer():GetNWInt("Virus") == 1 then
-		surface.SetMaterial(RoundHudInfected)
+		surface.SetMaterial(materials.round.infected)
 		surface.SetDrawColor(Color(255, 255, 255, 255))
 		surface.DrawTexturedRect(xOffset - 15, 15, 120, 120, Color(41, 128, 185, 255))
 	end
@@ -355,12 +358,5 @@ end
 hook.Add("HUDPaint", "drawRoundHUD", drawRoundHUD)
 
 net.Receive("Virus updateCurrentRound", function()
-    currentRound.number = net.ReadInt(2)
+	currentRound.number = net.ReadInt(2)
 end)
-
---[[net.Receive("Virus RoundMusic", function()
-    --currentRound.number = net.ReadInt(2)
-    --print("hello world")
-    --surface.PlaySound( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3" )
-    sound.Play( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3" )
-end)]]
