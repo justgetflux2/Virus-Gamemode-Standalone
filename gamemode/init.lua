@@ -1,10 +1,23 @@
-AddCSLuaFile( "cl_init.lua" )
-AddCSLuaFile( "shared.lua" )
-AddCSLuaFile( "cl_notice.lua" )
+AddCSLuaFile("shared.lua")
+AddCSLuaFile("cl_init.lua")
+AddCSLuaFile("cl_notice.lua")
 
-include( "shared.lua" )
+include("shared.lua")
+
 util.AddNetworkString("Virus updateCurrentRound")
 util.AddNetworkString("Virus RoundMusic")
+
+resource.AddFile("materials/hud_infected_radar")
+resource.AddFile("materials/hud_infected_rank")
+resource.AddFile("materials/hud_infected_score")
+resource.AddFile("materials/hud_infected_time")
+
+resource.AddFile("materials/hud_survivor_radar")
+resource.AddFile("materials/hud_survivor_rank")
+resource.AddFile("materials/hud_survivor_score")
+resource.AddFile("materials/hud_survivor_time")
+
+resource.AddFile("materials/hud_survivor_ammo")
 
 --[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) // TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]

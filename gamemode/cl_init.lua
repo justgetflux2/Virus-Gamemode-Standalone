@@ -1,16 +1,29 @@
 include( "shared.lua" )
 include( "cl_notice.lua" )
 
-local InfectedClock = Material("gmod_tower/virus/hud_infected_time")
-local Clock = Material("gmod_tower/virus/hud_survivor_time")
-local RoundHudInfected  = Material("gmod_tower/virus/hud_infected_time")
-local RoundHud = Material("gmod_tower/virus/hud_survivor_time")
-local RadarHudInfected  = Material("gmod_tower/virus/hud_infected_rank")
-local RadarHud = Material("gmod_tower/virus/hud_survivor_radar")
-local ScoreHudInfected  = Material("gmod_tower/virus/hud_infected_score")
-local ScoreHud = Material("gmod_tower/virus/hud_survivor_scor")
-local RankHudIfected  = Material("gmod_tower/virus/hud_infected_rank")
-local RankHud = Material("gmod_tower/virus/hud_survivor_rank")
+local materials = { // TODO Consider adding prefixes to the materials here. It's unlikely there will be conflicts however.
+	clock = {
+		normal = Material("hud_survivor_time"),
+		infected = Material("hud_infected_time")
+	},
+	round = {
+		normal = Material("hud_survivor_round"),
+		infected = Material("hud_infected_round")
+	},
+	radar = {
+		normal = Material("hud_survivor_radar"),
+		infected = Material("hud_infected_radar")
+	},
+	score = {
+		normal = Material("hud_survivor_score"),
+		infected = Material("hud_infected_score")
+	},
+	rank = {
+		normal = Material("hud_survivor_rank"),
+		infected = Material("hud_infected_rank")
+	},
+	ammo = Material("hud_survivor_ammo")
+}
 
 local config = {
 	roundTime = 110 -- 180 by default
