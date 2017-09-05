@@ -104,8 +104,52 @@ function GM:PlayerCanPickupItem( ply, item )
 end
 
 function drawImportantMessage()
-	draw.DrawText(GAMEMODE.message, "VirusHUD", ScrW() / 2, ScrH()/2 + 120, Color(255,255,255,200),TEXT_ALIGN_CENTER)
+	draw.DrawText(GAMEMODE.message, "VirusHUD", ScrW() / 2, ScrH() / 2 + 120, Color(255,255,255,200),TEXT_ALIGN_CENTER)
 end
+
+local pendingMessages = {}
+local currentlyPlayingMessage = false
+
+local function playGamemodeMessage(msg)
+	if currentlyPlayingMessage then
+		table.insert(pendingMessages, msg)
+		return
+	end
+
+	currentlyPlayingMessage = true
+
+	if table.HasValue(pendingMessages, msg) then
+		table.RemoveByValue(pendingMessages, msg)
+	end
+
+	local msgText = vgui.Create("DLabel")
+	msgText:SetPos(ScrW(), ScrH() / 2)
+	msgText:SetText(msg)
+	msgText:SizeToContents()
+	msgText:SetContentAlignment(TEXT_ALIGN_CENTER)
+	msgText:SetFont("Important")
+	msgText:SetAlpha(0)
+
+	msgText:MoveTo(ScrW() / 2,ScrH() / 2,1,0,1)
+	msgText:AlphaTo(255,0.5)
+
+	msgText:MoveTo(0,ScrH() / 2,1,3,1)
+	msgText:AlphaTo(0,0.5,3)
+
+	timer.Simple(6, function()
+		msgText:Remove()
+		currentlyPlayingMessage = false
+
+		if pendingMessages[1] != nil then
+			playGamemodeMessage(pendingMessages[1])
+		end
+	end)
+end
+
+net.Receive("Virus sendGamemodeMessage", function()
+	local msg = net.ReadString(32)
+	playGamemodeMessage(msg)
+end)
 
 local roundEndPhase = false
 local transitionStarted = false
@@ -142,7 +186,7 @@ local function drawClock()
 	local separator = ":"
 	if secs < 10 then separator = ":0" end
 
-	local xOffset = ScrW()/2 - 96
+	local xOffset = ScrW() / 2 - 96
 
 	surface.SetDrawColor(Color(255, 255, 255, 255))
 
@@ -154,7 +198,7 @@ local function drawClock()
 		surface.DrawTexturedRect(xOffset, 0, 96, 96, Color(255, 255, 255, 255))
 	end
 
-	draw.DrawText(mins .. separator .. secs, "VirusHUD", xOffset + 48, 40, Color(255,255,255,255),
+	draw.DrawText(mins .. separator .. secs, "VirusHUD", xOffset + 48, 34, Color(255,255,255,255),
 		TEXT_ALIGN_CENTER)
 end
 
@@ -171,7 +215,7 @@ local function drawRoundNumber()
 		surface.DrawTexturedRect(xOffset, 0, 96, 96)
 	end
 
-	draw.DrawText(currentRound.number, "VirusHUD", xOffset + 48, 40, Color(255, 255, 255, 255),
+	draw.DrawText(currentRound.number, "VirusHUD", xOffset + 48, 34, Color(255, 255, 255, 255),
 		TEXT_ALIGN_CENTER)
 end
 
@@ -185,6 +229,9 @@ local function drawAmmo()
 	surface.DrawTexturedRect(xOffset, ScrH() - 160, 200, 120, Color(41, 128, 185, 255))
 
 	local activeWeapon = LocalPlayer():GetActiveWeapon()
+	if activeWeapon == nil then return end
+	if activeWeapon:GetPrimaryAmmoType() == nil then return end
+
 	local ammoCapacity = LocalPlayer():GetAmmoCount(activeWeapon:GetPrimaryAmmoType())
 	local ammoCount = activeWeapon:Clip1() .. " / " .. ammoCapacity
 
@@ -211,6 +258,7 @@ local hide = {
 	CHudHealth = true,
 	CHudBattery = true,
 	CHudAmmo = true,
+	CHudDamageIndicator = true,
 	CHudSecondaryAmmo = true
 }
 
@@ -253,13 +301,32 @@ local function initialiseRoundTimer()
 end
 net.Receive("Virus sendStartGUIRoundTimers", initialiseRoundTimer)
 
-CreateClientConVar("chasecam_bob", 1, true, false)
-CreateClientConVar("chasecam_bobscale", 0.5, true, false)
-CreateClientConVar("chasecam_back", 55, true, false)
-CreateClientConVar("chasecam_right", -1, true, false)
-CreateClientConVar("chasecam_up", 5, true, false)
-CreateClientConVar("chasecam_smooth", 1, true, false)
-CreateClientConVar("chasecam_smoothscale", 0.2, true, false)
+hook.Add("Think", "Virus infectedGlow", function() // TODO Move out of think hook, change how this works. It's likely only one variable has to be updated per frame.
+	local infectedglow = DynamicLight(LocalPlayer():EntIndex())
+
+	if infectedglow and LocalPlayer():GetNWInt("Virus") == 1 then
+		infectedglow.pos = LocalPlayer():GetShootPos()
+		infectedglow.r = 70
+		infectedglow.g = 255
+		infectedglow.b = 70
+		infectedglow.brightness = 40
+		infectedglow.Decay = 100
+		infectedglow.Size = 90
+		infectedglow.DieTime = CurTime() + 1
+	end
+end)
+
+net.Receive("Virus updateCurrentRound", function()
+	currentRound.number = net.ReadInt(10)
+end)
+
+CreateClientConVar("chasecam_bob", 1, false, false)
+CreateClientConVar("chasecam_bobscale", 0.5, false, false)
+CreateClientConVar("chasecam_back", 55, false, false)
+CreateClientConVar("chasecam_right", -1, false, false)
+CreateClientConVar("chasecam_up", 5, false, false)
+CreateClientConVar("chasecam_smooth", 1, false, false)
+CreateClientConVar("chasecam_smoothscale", 0.2, false, false)
 
 local ThirdPerson = {}
 
@@ -341,22 +408,3 @@ function ThirdPerson.CalcView(player, pos, angles, fov) // TODO Preen
 	end
 end
 hook.Add("CalcView", "ThirdPerson.CalcView", ThirdPerson.CalcView)
-
-hook.Add("Think", "Virus infectedGlow", function() // TODO Move out of think hook, change how this works. It's likely only one variable has to be updated per frame.
-	local infectedglow = DynamicLight(LocalPlayer():EntIndex())
-
-	if infectedglow and LocalPlayer():GetNWInt("Virus") == 1 then
-		infectedglow.pos = LocalPlayer():GetShootPos()
-		infectedglow.r = 70
-		infectedglow.g = 255
-		infectedglow.b = 70
-		infectedglow.brightness = 7.9
-		infectedglow.Decay = 100
-		infectedglow.Size = 90
-		infectedglow.DieTime = CurTime() + 1
-	end
-end)
-
-net.Receive("Virus updateCurrentRound", function()
-	currentRound.number = net.ReadInt(2)
-end)
