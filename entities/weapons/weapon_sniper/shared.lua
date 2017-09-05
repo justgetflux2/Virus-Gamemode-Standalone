@@ -1,4 +1,4 @@
-SWEP.Base = "weapon_pvpbase"
+SWEP.Base = "weapon_virusbase"
 
 if SERVER then
 	AddCSLuaFile( "shared.lua" )
