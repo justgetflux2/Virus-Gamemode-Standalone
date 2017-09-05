@@ -1,0 +1,6 @@
+"virus"
+{
+	"title"		"Virus"
+	"base"		"base"
+	"menusystem"	"1"
+}
