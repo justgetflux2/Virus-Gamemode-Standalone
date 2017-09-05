@@ -86,7 +86,7 @@ function SWEP:Think()
 
 	elseif CurTime() >= self.Throw + 0.75 && self.ThrowMode == 1 then
 
-		self.Weapon:StripWeapon("weapon_tnt")
+		self:StripWeapon("weapon_tnt")
 		self.Throw = 0
 
 	end
