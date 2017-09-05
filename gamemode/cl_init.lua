@@ -121,10 +121,26 @@ local function playGamemodeMessage(msg)
 	surface.SetFont("Important")
 	local maxWidth = surface.GetTextSize(msg)
 
+	local msgTextBackground = vgui.Create("DLabel")
+	msgTextBackground:SetPos(ScrW() + 2, ScrH() / 2 - 20 + 2)
+	msgTextBackground:SetText(msg)
+	msgTextBackground:SetFont("Important")
+	msgTextBackground:SetTextColor(Color(0,30,120))
+	msgTextBackground:SetSize(800,400)
+	msgTextBackground:SetAlpha(0)
+	msgTextBackground:SizeToContents()
+
+	msgTextBackground:MoveTo(ScrW() / 2 - maxWidth / 2 + 2,ScrH() / 2 - 20 + 2,1,0,1)
+	msgTextBackground:AlphaTo(255,0.5)
+
+	msgTextBackground:MoveTo(2,ScrH() / 2 - 20 + 2,1,2,1)
+	msgTextBackground:AlphaTo(0,0.5,2)
+
 	local msgText = vgui.Create("DLabel")
 	msgText:SetPos(ScrW(), ScrH() / 2 - 20)
 	msgText:SetText(msg)
 	msgText:SetFont("Important")
+	msgText:SetTextColor(Color(255,255,255))
 	msgText:SetSize(800,400)
 	msgText:SetAlpha(0)
 	msgText:SizeToContents()
@@ -137,6 +153,8 @@ local function playGamemodeMessage(msg)
 
 	timer.Simple(3, function() // Messages take 3 seconds.
 		msgText:Remove()
+		msgTextBackground:Remove()
+
 		currentlyPlayingMessage = false
 
 		if pendingMessages[1] != nil then
