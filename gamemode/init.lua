@@ -1,10 +1,27 @@
-AddCSLuaFile( "cl_init.lua" )
-AddCSLuaFile( "shared.lua" )
-AddCSLuaFile( "cl_notice.lua" )
+AddCSLuaFile("shared.lua")
+AddCSLuaFile("cl_init.lua")
+AddCSLuaFile("cl_notice.lua")
 
-include( "shared.lua" )
+include("shared.lua")
+
 util.AddNetworkString("Virus updateCurrentRound")
 util.AddNetworkString("Virus RoundMusic")
+
+resource.AddFile("materials/hud_infected_radar.vmt")
+resource.AddFile("materials/hud_infected_rank.vmt")
+resource.AddFile("materials/hud_infected_score.vmt")
+resource.AddFile("materials/hud_infected_time.vmt")
+
+resource.AddFile("materials/hud_survivor_radar.vmt")
+resource.AddFile("materials/hud_survivor_rank.vmt")
+resource.AddFile("materials/hud_survivor_score.vmt")
+resource.AddFile("materials/hud_survivor_time.vmt")
+
+resource.AddFile("materials/hud_survivor_ammo.vmt")
+
+
+--[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) // TODO add custom models
+local modelname = player_manager.TranslatePlayerModel( model )]]
 
 Virus = { }				//infected players list
 ModName = "Virus"
@@ -32,22 +49,58 @@ function GM:Initialize()
 	setupPhase();
 end
 
-function GM:PlayerDisconnected( ply )
-	for i, infected in ipairs( Virus ) do
+function GM:PlayerInitialSpawn(ply)
+	ply:SetCollisionGroup(11) // Disables collision with other players.
+end
+
+function GM:PlayerDisconnected(ply)
+	for i, infected in pairs(Virus) do
 		if infected == ply then
-			table.remove( Virus, i )
+			table.remove(Virus, i)
 			break;
 		end
 	end
 end
 
-function GM:CanPlayerSuicide( ply )
+function GM:CanPlayerSuicide(ply)
 	//ply:PrintMessage( HUD_PRINTCONSOLE, "Trying to escape life I see.\n" )
 	return false
 end
 
-function GM:PlayerDeath( victim, Inflictor, killer )
+function GM:PlayerDeath(victim, Inflictor, killer)
+	victim.fireSprite.child:Remove()
+	victim.fireSprite:Remove()
 	victim:EmitSound("ambient/fire/ignite.waw")
+end
+
+local function makeSprite(pos, target, rate)
+	local sprite = ents.Create("env_sprite")
+	sprite:SetPos(pos)
+	sprite:SetKeyValue("rendercolor", "70 255 70")
+	sprite:SetKeyValue("renderamt", "150")
+	sprite:SetKeyValue("rendermode", "5")
+	sprite:SetKeyValue("renderfx", "0")
+	sprite:SetKeyValue("model", "sprites/fire1.spr")
+	sprite:SetKeyValue("glowproxysize", "32")
+	sprite:SetKeyValue("scale", "0.4")
+	sprite:SetKeyValue("framerate", rate)
+	sprite:SetKeyValue("spawnflags", 1)
+	sprite:SetParent(target)
+	sprite:Spawn()
+
+	table.insert(createdSprites, sprite)
+	return sprite
+end
+
+local function attachFireSprite(target)
+	local pos = target:GetPos() + Vector( 0, -10, 50 )
+	local pos2 = target:GetPos() + Vector( 0, -10, 65 )
+
+	local sprite1 = makeSprite(pos, target, "12")
+	local sprite2 = makeSprite(pos2, target, "9")
+
+	sprite1.child = sprite2
+	target.flameSprite = sprite1
 end
 
 local function configurePlayerAsVirus(ply)
@@ -55,8 +108,11 @@ local function configurePlayerAsVirus(ply)
 
 	ply:SetWalkSpeed(320)
 	ply:SetRunSpeed(530)
-	ply:SetJumpPower(0)
 
+	ply:StripWeapons()
+	ply:StripAmmo()
+
+	attachFireSprite(ply)
 	ply:EmitSound("gmodtower/virus/player_spawn.wav")
 end
 
@@ -65,20 +121,28 @@ local function configurePlayerAsHuman(ply)
 
 	ply:SetWalkSpeed(300)
 	ply:SetRunSpeed(525)
-	ply:SetJumpPower(0)
 
 	ply:SetNWInt("Virus", 0)
 	disableThirdPerson(ply)
 end
 
-local weapons = {
+local pistols = {}
+
+pistols[1] = {
 	"weapon_9mm",
-	"weapon_dsilen",
+	"weapon_dsilen"
+}
+
+pistols[2] = {
+	"weapon_flakgun",
+	"weapon_scifihandgun"
+}
+
+local otherWeaponsSet1 = {
 	"weapon_thompson",
 	"weapon_doublebarrel",
 	"weapon_sniper",
 	"weapon_sonicshotgun",
-	"weapon_flakgun",
 	"weapon_rcp120",
 	"weapon_smg1"
 }
@@ -93,26 +157,11 @@ function GM:PlayerLoadout(ply)
 		ply:GiveAmmo(30, "SMG1", true)
 		ply:GiveAmmo(64, "Buckshot", true)
 
-		local assignedWeapons = {}
-		for i = 0, 3 do
-			local rolledNumber = math.random(1, #weapons)
-			local randomWeapon = weapons[rolledNumber]
-
-			while true do
-				if table.HasValue(assignedWeapons, randomWeapon) then
-					if rolledNumber > #weapons then
-						rolledNumber = 0
-					end
-
-					randomWeapon = weapons[rolledNumber + 1]
-				else
-					break
-				end
-			end
-
-			ply:Give(randomWeapon)
-			table.insert(assignedWeapons, randomWeapon)
+		for k, wep in pairs(pistols[math.random(1,2)]) do
+			ply:Give(wep)
 		end
+
+		ply:Give(otherWeaponsSet1[math.random(1, #otherWeaponsSet1)])
 	end
 
 	return true
@@ -132,6 +181,7 @@ function enableThirdPerson(ply)
 	if ply:GetNWInt("thirdperson") == 1 then
 		return
 	end
+
 	local entity = ents.Create("prop_dynamic")
 	entity:SetModel(models.thirdPerson)
 	entity:Spawn()
@@ -141,31 +191,110 @@ function enableThirdPerson(ply)
 	entity:SetPos(ply:GetPos() + Vector(0, 0, 60))
 	entity:SetRenderMode(RENDERMODE_NONE)
 	entity:SetSolid(SOLID_NONE)
+	entity:DrawShadow(false)
+
 	ply:SetViewEntity(entity)
 	ply:SetNWInt("thirdperson", 1)
+end
+
+util.AddNetworkString("Virus sendGamemodeMessage")
+local function sendGamemodeMessage(text, survivorExclusive, infectedExclusive)
+	if text == nil then return end
+	survivorExclusive = survivorExclusive or false
+	infectedExclusive = infectedExclusive or false
+
+	if survivorExclusive then
+		for k, ply in pairs(player.GetAll()) do
+			if ply:GetNWInt("Virus") == 0 then
+				net.Start("Virus sendGamemodeMessage")
+				net.WriteString(text, 32)
+				net.Send(ply)
+			end
+		end
+	elseif infectedExclusive then
+		for k, ply in pairs(player.GetAll()) do
+			if ply:GetNWInt("Virus") == 1 then
+				net.Start("Virus sendGamemodeMessage")
+				net.WriteString(text, 32)
+				net.Send(ply)
+			end
+		end
+	else
+		net.Start("Virus sendGamemodeMessage")
+		net.WriteString(text, 32)
+		net.Broadcast()
+	end
 end
 
 function setupPhase()
 	timer.Create("minPlayerCheckLoop", 2, 0, function()
 		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			SendMessage(nil, "Get ready for Round " .. currentRound.number .. "!", nil, 0);
-			timer.Simple(2, function() SendMessage( nil, "Ready!", nil, 0 ) end)
+			sendGamemodeMessage("Get ready for Round " .. currentRound.number, false, false)
+
+			for k, ply in pairs(player.GetAll()) do
+				ply:Respawn()
+			end
+
+			timer.Simple(2, function()
+				sendGamemodeMessage("Ready!")
+			end)
+
 			timer.Simple(3, preparationBridge)
+
 			timer.Remove("minPlayerCheckLoop")
 		end
 	end)
 end
 
 function preparationBridge()
-	SendMessage( nil, "Set!", nil, 0 )
-	timer.Simple( 1, roundStart )
+	sendGamemodeMessage("Set!")
+	timer.Simple(1, roundStart)
 end
 
 util.AddNetworkString("Virus sendStartGUIRoundTimers")
+
 local function startClientsideRoundTimers()
 	net.Start("Virus sendStartGUIRoundTimers")
 	net.WriteInt(config.roundTime, 3)
 	net.Broadcast()
+end
+
+local gracedPlayer
+
+local function registerInfected(ply) // Internal function
+	table.insert(Virus, ply)
+	ply:SetNWInt("Virus", 1)
+	ply:EmitSound("gmodtower/virus/stinger.mp3")
+end
+
+local function infectPlayer(ply)	// set ply to nil for a random player
+	registerInfected(ply)
+
+	enableThirdPerson(ply)
+	configurePlayerAsVirus(ply)
+
+	currentRound.noOfInfected = currentRound.noOfInfected + 1
+	checkRoundState()
+end
+
+local function generateFirstInfected()
+	local players = player.GetAll()
+	local randomNumber = math.random(#players)
+
+	if players[randomNumber] == gracedPlayer then
+		if players[randomNumber + 1] != nil then
+			randomNumber = randomNumber + 1
+		elseif players[randomNumber - 1] != nil then
+			randomNumber = randomNumber - 1
+		else
+			print("WARNING // Critical error in generation process.")
+			debug.Trace()
+			roundStart()
+		end
+	end
+
+	gracedPlayer = players[randomNumber]
+	infectPlayer(players[randomNumber])
 end
 
 function roundStart()
@@ -173,43 +302,21 @@ function roundStart()
 	currentRound.noOfPlayers = #currentRound.playerList
 	currentRound.noOfInfected = 0
 
-	if Virus[ 1 ] == nil then MakeVirus( nil ) end
-	SendMessage( nil, "Survive!", Virus[ 1 ], 1 )
-	SendMessage( Virus[ 1 ], "Infect!", nil, 1 )
-	timer.Simple(2, function () SendMessage(nil, "", nil, 0) end)
+	generateFirstInfected()
+
 	timer.Create("RoundTimer", config.roundTime, 1, roundFinish)
+
+	sendGamemodeMessage("You're infected, take down the survivors!", false, true)
+	sendGamemodeMessage("You're a survivor. Take down the infected!", true, false)
+	sendGamemodeMessage("The round has begun!", false, false)
+
 	startClientsideRoundTimers()
 
 	net.Start("Virus updateCurrentRound")
-		net.WriteInt(currentRound.number, 2)
+		net.WriteInt(currentRound.number, 10)
 	net.Broadcast()
 
-	umsg.Start("VirusRoundMusic")
-	umsg.End()
---[[for k, ply in pairs(player.GetAll()) do -- gotta fix this round problems
---ply.EmitSound("gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3")
---RunConsoleCommand("play gmodtower/virus/roundplay1.mp3")
-ply:EmitSound("gmodtower/virus/stinger.mp3")
-end]]
-
-end
-
-function SendMessage( playerObject, message, without, duration )
-	local rp = RecipientFilter()
-
-	if playerObject != nil && playerObject:IsPlayer() then
-		rp:AddPlayer( playerObject )
-	else
-		 rp:AddAllPlayers()
-	end
-
-	if without != nil &&  without:IsPlayer() then
-		rp:RemovePlayer(without)
-	end
-
-	umsg.Start( "impText", rp )
-	umsg.String( message )
-	umsg.Short( duration )
+	umsg.Start("VirusRoundMusic") // TODO Change to net messages
 	umsg.End()
 end
 
@@ -218,7 +325,7 @@ local function checkRoundState()
 
 	if currentRound.noOfInfected == 0 && playerList != nil then
 		local randomPlayer = playerList[math.random(1, #playerList)]
-		MakeVirus(randomPlayer)
+		generateFirstInfected() // TODO What happens when there is 1 player left and they get infected?
 	end
 
 	if currentRound.noOfPlayers == currentRound.noOfInfected then
@@ -236,13 +343,14 @@ function GM:PlayerDisconnected(ply)
 	end
 end
 
-function infectedRadialHitDetection()
+local function infectedRadialHitDetection()
 	for i, infected in pairs(Virus) do
 		if !infected:IsValid() then return end // check incase no viruses are there at all, caused by someone ragequitting right at round start
+
 		local Objects = ents.FindInSphere( infected:GetPos( ), 30 ) // TODO: This radius was originally 20. Reconsider it if the detection radius is too forgiving.
 		for _, ply in pairs(Objects) do
 			if ply:IsPlayer( ) && ply:GetNWInt( "Virus" ) != 1 then
-					MakeVirus( ply )
+				infectPlayer(ply)
 			end
 		end
 	end
@@ -255,7 +363,7 @@ end
 util.AddNetworkString("Virus drawRoundEndPhase")
 
 function roundFinish(forced) // TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
-	if !forced then timer.Remove( "RoundTimer" ); end
+	if !forced then timer.Remove( "RoundTimer"); end
 
 	net.Start("Virus drawRoundEndPhase")
 	net.Broadcast()
@@ -272,12 +380,15 @@ function transitionToSetupPhase()
 
 	if (currentRound.number == 9) then
 		Msg("Changing to the next map.")
+
 		for k, ply in pairs( player.GetAll() ) do
 			ply:ChatPrint("Changing to the next map!") // Announce it too all players, else they will be confused!
 		end
+
 		timer.Simple(5, function()  // Give the player 5 seconds to read that the map will change before actually changing it directly at round 4!
-		RunConsoleCommand("changelevel", game.GetMapNext()) // TODO: GetMapNext() finds maps SET BY the mapcyclefile console command.
+			RunConsoleCommand("changelevel", game.GetMapNext()) // TODO: GetMapNext() finds maps SET BY the mapcyclefile console command.
 		end)
+
 		return
 	end
 
@@ -296,88 +407,11 @@ function transitionToSetupPhase()
 
 	setupPhase()
 end
-util.AddNetworkString("Virus forcePlayerModel")
 
-function MakeVirus( ply )	// set ply to nil for a random player
-	local newVirus = nil
-
-	newVirus = VirusGenerator( ply )
-	if newVirus == -1 then return; end
-	newVirus = Virus[ newVirus ]
-	FireVirus( newVirus )
-	newVirus:SetWalkSpeed( 320 )
-	newVirus:SetRunSpeed( 540 )
-	newVirus:StripWeapons( )
-
-	enableThirdPerson(newVirus)
-
-	currentRound.noOfInfected = currentRound.noOfInfected + 1
-	checkRoundState()
-
-	//newVirus:SetViewOffset(Vector(-80, 0, 100))
-	net.Start("Virus forcePlayerModel")
-	net.Send(newVirus)
-end
-
-function FireVirus( Target )
-	if Target:IsPlayer() then
-		Target:SetModel(models.virus)
-		local Pos = Target:GetPos( ) + Vector( 0, -10, 50 )
-		local Pos2 = Target:GetPos( ) + Vector( 0, -10, 50 )
-		MakeSprite( Pos, Target, "12" )
-		MakeSprite( Pos2, Target, "9" )
+local function survivorNoDamage(target, dmginfo)
+	if target:GetNWInt("Virus") == 0 && target:IsPlayer() then
+		dmginfo:ScaleDamage(0)
 	end
 end
 
-function MakeSprite( Pos, Target, Rate )
-	local sprite = ents.Create( "env_sprite" )
-	sprite:SetPos( Pos )
-	sprite:SetKeyValue( "rendercolor", "70 255 70" )
-	sprite:SetKeyValue( "renderamt", "150" )
-	sprite:SetKeyValue( "rendermode", "5" )
-	sprite:SetKeyValue( "renderfx", "0" )
-	sprite:SetKeyValue( "model", "sprites/fire1.spr" )
-	sprite:SetKeyValue( "glowproxysize", "32" )
-	sprite:SetKeyValue( "scale", "0.4" )
-	sprite:SetKeyValue( "framerate", Rate )
-	sprite:SetKeyValue( "spawnflags", 1 )
-	sprite:SetParent( Target )
-	sprite:Spawn( )
-	table.insert(createdSprites, sprite)
-end
-
-function VirusGenerator( ply )	// do not use outside 'MakeVirus( ply )'
-	if ply == nil then	// Random Player becomes infected(Use only once!)
-			local players = player.GetAll( )
-			local randomNumber = math.random( #players )
-			table.insert( Virus, players[ randomNumber ] )
-			players[ randomNumber ]:SetNWInt( "Virus", 1 )
-			return #Virus
-	end
-	if ply:IsPlayer() && ply:GetNWInt( "Virus" ) != 1 then	// Given player becomes infected
-		table.insert( Virus, ply )
-		ply:SetNWInt( "Virus", 1 )
-		ply:EmitSound("gmodtower/virus/stinger.mp3")
-		// SendMessage( nil, "Somebody has been infected!", nil, 0 ) -- testing
-		return #Virus
-	end
-	// Bad call! EVIL!!!
-	return -1
-end
-
-function Objectives( ply )
-	umsg.Start( "ShowObjectives", ply )
-	umsg.End()
-end
-hook.Add( "ShowHelp", "ShowObjectives", Objectives )
-
-function Survivornodamage( target, dmginfo )
-	if target:GetNWInt("Virus") == 0 then
-	dmginfo:ScaleDamage( 0 )
-	end
-
-end
-
-hook.Add("EntityTakeDamage", "Survivornodamage",Survivornodamage)
-
-hook.Add( "PlayerSpawn", "PlayerCollision", function(ply) ply:SetCollisionGroup(11) end )
+hook.Add("EntityTakeDamage", "survivorNoDamage", survivorNoDamage)

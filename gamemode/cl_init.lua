@@ -1,16 +1,29 @@
 include( "shared.lua" )
 include( "cl_notice.lua" )
 
-local InfectedClock = Material("gmod_tower/virus/hud_infected_time")
-local Clock = Material("gmod_tower/virus/hud_survivor_time")
-local RoundHudInfected  = Material("gmod_tower/virus/hud_infected_time")
-local RoundHud = Material("gmod_tower/virus/hud_survivor_time")
-local RadarHudInfected  = Material("gmod_tower/virus/hud_infected_rank")
-local RadarHud = Material("gmod_tower/virus/hud_survivor_radar")
-local ScoreHudInfected  = Material("gmod_tower/virus/hud_infected_score")
-local ScoreHud = Material("gmod_tower/virus/hud_survivor_scor")
-local RankHudIfected  = Material("gmod_tower/virus/hud_infected_rank")
-local RankHud = Material("gmod_tower/virus/hud_survivor_rank")
+local materials = { // TODO Consider adding prefixes to the materials here. It's unlikely there will be conflicts however.
+	clock = {
+		normal = Material("gmod_tower/virus/hud_survivor_time"),
+		infected = Material("gmod_tower/virus/hud_infected_time")
+	},
+	round = {
+		normal = Material("gmod_tower/virus/hud_survivor_round"),
+		infected = Material("gmod_tower/virus/hud_infected_round")
+	},
+	radar = {
+		normal = Material("gmod_tower/virus/hud_survivor_radar"),
+		infected = Material("gmod_tower/virus/hud_infected_radar")
+	},
+	score = {
+		normal = Material("gmod_tower/virus/hud_survivor_score"),
+		infected = Material("gmod_tower/virus/hud_infected_score")
+	},
+	rank = {
+		normal = Material("gmod_tower/virus/hud_survivor_rank"),
+		infected = Material("gmod_tower/virus/hud_infected_rank")
+	},
+	ammo = Material("gmod_tower/virus/hud_survivor_ammo")
+}
 
 local config = {
 	roundTime = 110 -- 180 by default
@@ -24,12 +37,13 @@ local currentRound = {
 }
 
 function GM:Initialize()
-	surface.CreateFont( "Small", {
-		font = "Arial",
-		size = 24,
+	surface.CreateFont( "VirusHUD", {
+		font = "Impact",
+		size = 36,
 		weight = 200,
 		antialias = true,
 		additive = false,
+		outline = true
 	})
 
 	surface.CreateFont( "Important", {
@@ -40,7 +54,7 @@ function GM:Initialize()
 		additive = false,
 	})
 
-    surface.CreateFont( "fuckhd", {
+	surface.CreateFont( "fuckhd", {
 		font = "reactor-sans",
 		size = 28,
 		weight = 200,
@@ -48,29 +62,26 @@ function GM:Initialize()
 		additive = false,
 	})
 
-
-	GAMEMODE.message = "The virus didn't spread yet"
-	GAMEMODE.size = 0
+	GAMEMODE.message = "Waiting for at least 4 players..."
 	GAMEMODE.timeLeft = 0
-	GAMEMODE.LastState = 0
 end
 
-function GM:PlayerBindPress( ply, bind, pressed )
+function GM:PlayerBindPress(ply, bind, pressed)
 	if not pressed then return false end
 
 	if (bind == "+zoom") then
 		return true
 	end
 
-    if (bind == "+speed") then
+	if (bind == "+speed") then
 		return true
 	end
 
-    if (bind == "+jump") then
+	if (bind == "+jump") then
 		return true
 	end
 
-    if (bind == "+duck") then
+	if (bind == "+duck") then
 		return true
 	end
 
@@ -92,15 +103,53 @@ function GM:PlayerCanPickupItem( ply, item )
 	return false
 end
 
-function ImportantText( text )
+function drawImportantMessage()
+	draw.DrawText(GAMEMODE.message, "VirusHUD", ScrW() / 2, ScrH() / 2 + 120, Color(255,255,255,200),TEXT_ALIGN_CENTER)
+end
 
-	if GAMEMODE.size == 0 then
-		draw.DrawText(text, "Small", ScrW() / 2, ScrH() -20, Color(255,255,255,200),TEXT_ALIGN_CENTER)
-	else
-		draw.SimpleTextOutlined( text, "Important", ScrW() / 2, ScrH() / 2, Color(255,255,255,150), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER, 3, Color(0,0,0,100) )
+local pendingMessages = {}
+local currentlyPlayingMessage = false
+
+local function playGamemodeMessage(msg)
+	if currentlyPlayingMessage then
+		table.insert(pendingMessages, msg)
+		return
 	end
 
+	currentlyPlayingMessage = true
+
+	if table.HasValue(pendingMessages, msg) then
+		table.RemoveByValue(pendingMessages, msg)
+	end
+
+	local msgText = vgui.Create("DLabel")
+	msgText:SetPos(ScrW(), ScrH() / 2)
+	msgText:SetText(msg)
+	msgText:SizeToContents()
+	msgText:SetContentAlignment(TEXT_ALIGN_CENTER)
+	msgText:SetFont("Important")
+	msgText:SetAlpha(0)
+
+	msgText:MoveTo(ScrW() / 2,ScrH() / 2,1,0,1)
+	msgText:AlphaTo(255,0.5)
+
+	msgText:MoveTo(0,ScrH() / 2,1,3,1)
+	msgText:AlphaTo(0,0.5,3)
+
+	timer.Simple(6, function()
+		msgText:Remove()
+		currentlyPlayingMessage = false
+
+		if pendingMessages[1] != nil then
+			playGamemodeMessage(pendingMessages[1])
+		end
+	end)
 end
+
+net.Receive("Virus sendGamemodeMessage", function()
+	local msg = net.ReadString(32)
+	playGamemodeMessage(msg)
+end)
 
 local roundEndPhase = false
 local transitionStarted = false
@@ -131,78 +180,110 @@ local function drawRoundEndPhase()
 	end
 end
 
-function GM:HUDPaint()
-	self.BaseClass:HUDPaint( ) -- TODO: Stop using the base class HUD paint and do something else.
-	if roundEndPhase then -- TODO: we should try to handle the states another way.
-		drawRoundEndPhase()
-	else
-		DrawClock()
-		ImportantText(GAMEMODE.message)
-		--self:PaintNotes
-		--drawPendingHUDNotes() -- TODO: Reimplement HUD notes.
-	end
-end
-
-net.Receive("Virus drawRoundEndPhase", function() roundEndPhase = true end)
-
-function DrawClock()
+local function drawClock()
 	local mins = math.floor(GAMEMODE.timeLeft / 60)
 	local secs = GAMEMODE.timeLeft % 60
 	local separator = ":"
 	if secs < 10 then separator = ":0" end
 
-if LocalPlayer( ):GetNWInt("Virus") == 0 then
-surface.SetMaterial(Clock)
-surface.SetDrawColor(Color(255, 255, 255, 255))
-surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
-elseif LocalPlayer( ):GetNWInt("Virus") == 1 then
-surface.SetMaterial(InfectedClock)
-surface.SetDrawColor(Color(255, 255, 255, 255))
-surface.DrawTexturedRect(900, -20, 120, 120, Color(255, 255, 255, 255))
-end
-	draw.DrawText(mins .. separator .. secs, "Small", ScrW() / 2, 25,
-		Color(255,255,255,255),
+	local xOffset = ScrW() / 2 - 96
+
+	surface.SetDrawColor(Color(255, 255, 255, 255))
+
+	if LocalPlayer():GetNWInt("Virus") == 0 then
+		surface.SetMaterial(materials.clock.normal)
+		surface.DrawTexturedRect(xOffset, 0, 96, 96, Color(255, 255, 255, 255))
+	elseif LocalPlayer():GetNWInt("Virus") == 1 then
+		surface.SetMaterial(materials.clock.infected)
+		surface.DrawTexturedRect(xOffset, 0, 96, 96, Color(255, 255, 255, 255))
+	end
+
+	draw.DrawText(mins .. separator .. secs, "VirusHUD", xOffset + 48, 34, Color(255,255,255,255),
 		TEXT_ALIGN_CENTER)
 end
 
-function GM:Think()
-	local state = GAMEMODE.LastState -- TODO: What is going on here? Redo the LastState variable.
-	GAMEMODE.LastState = LocalPlayer( ):GetNWInt( "Virus" )
-	if GAMEMODE.LastState != state then
-		GAMEMODE:AddNotify( "You have been infected, You must spread the virus", NOTIFY_HINT, 7)
-		GAMEMODE:AddNotify( "to everyone by touching them", NOTIFY_HINT, 7)
+local function drawRoundNumber()
+	local xOffset = ScrW() / 2
+
+	surface.SetDrawColor(Color(255, 255, 255, 255))
+
+	if LocalPlayer():GetNWInt("Virus") == 0 then
+		surface.SetMaterial(materials.round.normal)
+		surface.DrawTexturedRect(xOffset, 0, 96, 96)
+	elseif LocalPlayer():GetNWInt("Virus") == 1 then
+		surface.SetMaterial(materials.round.infected)
+		surface.DrawTexturedRect(xOffset, 0, 96, 96)
+	end
+
+	draw.DrawText(currentRound.number, "VirusHUD", xOffset + 48, 34, Color(255, 255, 255, 255),
+		TEXT_ALIGN_CENTER)
+end
+
+local function drawAmmo()
+	if LocalPlayer():GetNWInt("Virus") == 1 then return end
+	local xOffset = ScrW() - 240
+	local yOffset = ScrH() - 160
+
+	surface.SetMaterial(materials.ammo)
+	surface.SetDrawColor(Color(41, 128, 185, 255))
+	surface.DrawTexturedRect(xOffset, ScrH() - 160, 200, 120, Color(41, 128, 185, 255))
+
+	local activeWeapon = LocalPlayer():GetActiveWeapon()
+	if activeWeapon == nil then return end
+	if activeWeapon:GetPrimaryAmmoType() == nil then return end
+
+	local ammoCapacity = LocalPlayer():GetAmmoCount(activeWeapon:GetPrimaryAmmoType())
+	local ammoCount = activeWeapon:Clip1() .. " / " .. ammoCapacity
+
+	draw.DrawText(ammoCount, "VirusHUD", xOffset + 100, yOffset + 40, Color(255,255,255,255), TEXT_ALIGN_CENTER)
+end
+
+function GM:HUDPaint()
+	//self.BaseClass:HUDPaint() // TODO: Stop using the base class HUD paint and do something else.
+	if roundEndPhase then // TODO: we should try to handle the states another way.
+		drawRoundEndPhase()
+	else
+		drawClock()
+		drawRoundNumber()
+		drawAmmo()
+		drawImportantMessage()
+		//self:PaintNotes
+		//drawPendingHUDNotes() // TODO: Reimplement HUD notes.
 	end
 end
 
-function ShowObjectives(msg)
-		GAMEMODE:AddNotify( "You must avoid touching the infected(they have green flames)", NOTIFY_HINT, 13 )
-		GAMEMODE:AddNotify( "in any way you can, run or kill", NOTIFY_HINT, 13 )
-		GAMEMODE:AddNotify( "if you get infected you must spread the virus as fast as possible", NOTIFY_HINT, 13 )
-		GAMEMODE:AddNotify( "by simply touching uninfected people", NOTIFY_HINT, 13 )
-end
-usermessage.Hook("ShowObjectives", ShowObjectives)
+net.Receive("Virus drawRoundEndPhase", function() roundEndPhase = true end)
 
-function changeMessage( um )
-	GAMEMODE.message = um:ReadString( )
-	GAMEMODE.size = 1
+local hide = {
+	CHudHealth = true,
+	CHudBattery = true,
+	CHudAmmo = true,
+	CHudDamageIndicator = true,
+	CHudSecondaryAmmo = true
+}
+
+function GM:HUDShouldDraw(name) // Stops the default HUD from drawing
+	if (hide[name]) then
+		return false
+	end
+	return true
 end
-usermessage.Hook("impText", changeMessage)
 
 function VirusMusicTest( um )
-surface.PlaySound( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3")
-surface.PlaySound("gmodtower/virus/stinger.mp3")
+	surface.PlaySound("gmodtower/virus/roundplay" .. math.random(1,5) .. ".mp3")
+	surface.PlaySound("gmodtower/virus/stinger.mp3")
 end
 usermessage.Hook("VirusRoundMusic", VirusMusicTest)
 
 function SurvivorsWin( um )
-surface.PlaySound( "gmodtower/virus/roundend_survivors.mp3")
-surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
-surface.PlaySound("gmodtower/virus/ui/menu.wav")
+	surface.PlaySound( "gmodtower/virus/roundend_survivors.mp3")
+	surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
+	surface.PlaySound("gmodtower/virus/ui/menu.wav")
 end
 usermessage.Hook("SurvivorsWin", SurvivorsWin)
 
 function VirusWaitForInfected( um )
-surface.PlaySound("gmodtower/virus/waiting_forinfection"..math.random(1,8)..".mp3")
+	surface.PlaySound("gmodtower/virus/waiting_forinfection"..math.random(1,8)..".mp3")
 end
 usermessage.Hook("VirusWaitForInfected", VirusWaitForInfected)
 
@@ -220,17 +301,37 @@ local function initialiseRoundTimer()
 end
 net.Receive("Virus sendStartGUIRoundTimers", initialiseRoundTimer)
 
-CreateClientConVar("chasecam_bob", 1, true, false)
-CreateClientConVar("chasecam_bobscale", 0.5, true, false)
-CreateClientConVar("chasecam_back", 55, true, false)
-CreateClientConVar("chasecam_right", -1, true, false)
-CreateClientConVar("chasecam_up", 5, true, false)
-CreateClientConVar("chasecam_smooth", 1, true, false)
-CreateClientConVar("chasecam_smoothscale", 0.2, true, false)
+hook.Add("Think", "Virus infectedGlow", function() // TODO Move out of think hook, change how this works. It's likely only one variable has to be updated per frame.
+	local infectedglow = DynamicLight(LocalPlayer():EntIndex())
+
+	if infectedglow and LocalPlayer():GetNWInt("Virus") == 1 then
+		infectedglow.pos = LocalPlayer():GetShootPos()
+		infectedglow.r = 70
+		infectedglow.g = 255
+		infectedglow.b = 70
+		infectedglow.brightness = 40
+		infectedglow.Decay = 100
+		infectedglow.Size = 90
+		infectedglow.DieTime = CurTime() + 1
+	end
+end)
+
+net.Receive("Virus updateCurrentRound", function()
+	currentRound.number = net.ReadInt(10)
+end)
+
+CreateClientConVar("chasecam_bob", 1, false, false)
+CreateClientConVar("chasecam_bobscale", 0.5, false, false)
+CreateClientConVar("chasecam_back", 55, false, false)
+CreateClientConVar("chasecam_right", -1, false, false)
+CreateClientConVar("chasecam_up", 5, false, false)
+CreateClientConVar("chasecam_smooth", 1, false, false)
+CreateClientConVar("chasecam_smoothscale", 0.2, false, false)
 
 local ThirdPerson = {}
+
 -- I apologize for copying all of this code from something else.
-function ThirdPerson.CalcView(player, pos, angles, fov)
+function ThirdPerson.CalcView(player, pos, angles, fov) // TODO Preen
 	local smooth = GetConVarNumber("chasecam_smooth")
 	local smoothscale = GetConVarNumber("chasecam_smoothscale")
 	if player:GetNWInt("thirdperson") == 1 then
@@ -307,54 +408,3 @@ function ThirdPerson.CalcView(player, pos, angles, fov)
 	end
 end
 hook.Add("CalcView", "ThirdPerson.CalcView", ThirdPerson.CalcView)
-
----
---Layer: 1
--- Move this OUT of the HUDPaint hook in order to make sure your HUD is efficient
---local Texture1 = Material("gmod_tower/virus/hud_survivor_ammo")
---[[surface.SetMaterial(Texture1)
-surface.SetDrawColor(Color(41, 128, 185, 255))
-surface.DrawTexturedRect(ScrW()-260, ScrH()-125, 200, 120, Color(41, 128, 185, 255))]]
-
-hook.Add( "Think", "Think_infectedglow", function()
-	local infectedglow = DynamicLight( LocalPlayer():EntIndex() )
-	if ( infectedglow ) and LocalPlayer( ):GetNWInt("Virus") == 1 then
-		infectedglow.pos = LocalPlayer():GetShootPos()
-		infectedglow.r = 70
-		infectedglow.g = 255
-		infectedglow.b = 70
-		infectedglow.brightness = 7.9
-		infectedglow.Decay = 100
-		infectedglow.Size = 90
-		infectedglow.DieTime = CurTime() + 1
-	end
-end)
-
-local function DrawRound()
-	if LocalPlayer( ):GetNWInt("Virus") == 0 then
-		surface.SetMaterial(RoundHud)
-		surface.SetDrawColor(Color(255, 255, 255, 255))
-		surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255))
-	elseif LocalPlayer( ):GetNWInt("Virus") == 1 then
-		surface.SetMaterial(RoundHudInfected)
-		surface.SetDrawColor(Color(255, 255, 255, 255))
-		surface.DrawTexturedRect(ScrW()-160, 35, 120, 120, Color(41, 128, 185, 255)) -- I will be fixing the placements
-	end
-
-   draw.DrawText(currentRound.number, "Small", ScrW() / 2, 25,
-   	   Color(255,255,255,255),
-   	   TEXT_ALIGN_CENTER)
-end
-
-hook.Add("HUDPaint", "DrawRound", DrawRound)
-
-net.Receive("Virus updateCurrentRound", function()
-    currentRound.number = net.ReadInt(2)
-end)
-
---[[net.Receive("Virus RoundMusic", function()
-    --currentRound.number = net.ReadInt(2)
-    --print("hello world")
-    --surface.PlaySound( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3" )
-    sound.Play( "gmodtower/virus/roundplay" ..math.random(1,5).. ".mp3" )
-end)]]

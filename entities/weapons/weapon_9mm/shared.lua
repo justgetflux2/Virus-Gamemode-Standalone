@@ -18,12 +18,12 @@ SWEP.ViewModelFOV = 81.74036340625
 SWEP.HoldType		= "pistol"
 
 SWEP.Primary.Delay	 = 0.3
-SWEP.Primary.Damage	 = {12, 10}
+SWEP.Primary.Damage	 = {12, 15}
 SWEP.Primary.Cone	 = 0.04
 SWEP.Primary.ClipSize	 = 10
 SWEP.Primary.DefaultClip = 45
 SWEP.Primary.Ammo	 = "pistol"
-SWEP.Primary.Sound	 = "GModTower/virus/weapons/9mm/shoot.wav" 
+SWEP.Primary.Sound	 = "GModTower/virus/weapons/9mm/shoot.wav"
 
 SWEP.Secondary = SWEP.Primary
 
