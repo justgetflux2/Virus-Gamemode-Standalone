@@ -85,6 +85,19 @@ function GM:PlayerCanPickupItem( ply, item )
 	return false
 end
 
+function GM:Think()
+	if LocalPlayer():GetNWInt("Virus") == 1 then
+		local Objects = ents.FindInSphere(LocalPlayer():GetPos(), 30) -- TODO: This radius was originally 20. Reconsider it if the detection radius is too forgiving.
+		for _, ply in pairs(Objects) do
+			if ply:IsPlayer() && ply:GetNWInt("Virus") != 1 then
+				net.Start("Virus hitDetection")
+					net.WriteEntity(ply)
+				net.SendToServer()
+			end
+		end
+	end
+end
+
 hook.Add("Think", "Virus infectedGlow", function() -- TODO We need to make this visible to other players. Sprite system?
 	local infectedglow = DynamicLight(LocalPlayer():EntIndex())
 

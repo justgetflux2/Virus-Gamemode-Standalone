@@ -8,7 +8,9 @@ AddCSLuaFile("cl_thirdperson.lua")
 AddCSLuaFile("cl_hud.lua")
 
 include("shared.lua")
+
 include("sv_message.lua")
+include("sv_thirdperson.lua")
 
 util.AddNetworkString("Virus updateCurrentRound")
 util.AddNetworkString("Virus roundMusic")
@@ -25,8 +27,7 @@ local config = {
 
 local models = {
 	normal = Model("models/player/Group03/male_04.mdl"), -- TODO: This needs to be multiple player models
-	virus = Model("models/player/virusi.mdl"),
-	thirdPerson = Model("models/error.mdl")
+	virus = Model("models/player/virusi.mdl")
 }
 
 local currentRound = {
@@ -145,6 +146,9 @@ function GM:PlayerLoadout(ply)
 	else
 		configurePlayerAsHuman(ply)
 
+		ply:StripWeapons()
+		ply:StripAmmo()
+
 		ply:GiveAmmo(42, "Pistol", true)
 		ply:GiveAmmo(30, "SMG1", true)
 		ply:GiveAmmo(64, "Buckshot", true)
@@ -157,37 +161,6 @@ function GM:PlayerLoadout(ply)
 	end
 
 	return true
-end
-
-function disableThirdPerson(ply)
-	if ply:GetNWInt("thirdperson") == 0 then
-		return
-	end
-
-	local entity = ply:GetViewEntity()
-	ply:SetNWInt("thirdperson", 0)
-	ply:SetViewEntity(ply)
-	entity:Remove()
-end
-
-function enableThirdPerson(ply)
-	if ply:GetNWInt("thirdperson") == 1 then
-		return
-	end
-
-	local entity = ents.Create("prop_dynamic")
-	entity:SetModel(models.thirdPerson)
-	entity:Spawn()
-	entity:SetAngles(ply:GetAngles())
-	entity:SetMoveType(MOVETYPE_NONE)
-	entity:SetParent(ply)
-	entity:SetPos(ply:GetPos() + Vector(0, 0, 60))
-	entity:SetRenderMode(RENDERMODE_NONE)
-	entity:SetSolid(SOLID_NONE)
-	entity:DrawShadow(false)
-
-	ply:SetViewEntity(entity)
-	ply:SetNWInt("thirdperson", 1)
 end
 
 function setupPhase()
@@ -302,22 +275,12 @@ function GM:PlayerDisconnected(ply)
 	end
 end
 
-local function infectedRadialHitDetection()
-	for i, infected in pairs(Virus) do
-		if !infected:IsValid() then return end -- check incase no viruses are there at all, caused by someone ragequitting right at round start
+util.AddNetworkString("Virus hitDetection")
 
-		local Objects = ents.FindInSphere( infected:GetPos( ), 30 ) -- TODO: This radius was originally 20. Reconsider it if the detection radius is too forgiving.
-		for _, ply in pairs(Objects) do
-			if ply:IsPlayer( ) && ply:GetNWInt( "Virus" ) != 1 then
-				infectPlayer(ply)
-			end
-		end
-	end
-end
-
-function GM:Tick()
-	infectedRadialHitDetection()
-end
+net.Receive("Virus hitDetection", function(len, ply)
+	local target = net.ReadEntity()
+	infectPlayer(target)
+end)
 
 util.AddNetworkString("Virus drawRoundEndPhase")
 
