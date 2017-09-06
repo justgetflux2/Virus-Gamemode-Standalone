@@ -1,61 +1,61 @@
 local pendingMessages = {}
 local currentlyPlayingMessage = false
 
-function playGamemodeMessage(queueMessage)
-	local msg = net.ReadString(32) or queueMessage
+function playGamemodeMessage(queueMessage, duration)
+	local data = {
+		msg = net.ReadString(32) or queueMessage,
+		aliveTime = (net.ReadInt(10) or duration) or 1
+	}
 
 	if currentlyPlayingMessage then
-		table.insert(pendingMessages, msg)
+		table.insert(pendingMessages, data)
 		return
 	end
 
 	currentlyPlayingMessage = true
 
-	if table.HasValue(pendingMessages, msg) then
-		table.RemoveByValue(pendingMessages, msg)
-	end
-
 	surface.SetFont("Important")
-	local textWidth = surface.GetTextSize(msg)
+	local textWidth = surface.GetTextSize(data.msg)
 
 	local msgTextBackground = vgui.Create("DLabel")
 	msgTextBackground:SetPos(ScrW() + 2, ScrH() / 2 + 2 - 20)
 	msgTextBackground:SetSize(ScrW(), ScrH())
-	msgTextBackground:SetText(msg)
+	msgTextBackground:SetText(data.msg)
 	msgTextBackground:SetTextColor(Color(0,40,130))
 	msgTextBackground:SetFont("Important")
 	msgTextBackground:SetAlpha(0)
 	msgTextBackground:SizeToContents()
 
-	msgTextBackground:MoveTo(ScrW() / 2 + 2 - textWidth / 2,ScrH() / 2 + 2 - 20,1,0)
-	msgTextBackground:AlphaTo(255,0.5)
+	msgTextBackground:MoveTo(ScrW() / 2 + 2 - textWidth / 2,ScrH() / 2 + 2 - 20,data.aliveTime / 3,0)
+	msgTextBackground:AlphaTo(255,data.aliveTime / 3)
 
-	msgTextBackground:MoveTo(2,ScrH() / 2 + 2 - 20,1,2)
-	msgTextBackground:AlphaTo(0,0.5,2)
+	msgTextBackground:MoveTo(2,ScrH() / 2 + 2 - 20,data.aliveTime / 3,data.aliveTime / 3 * 2)
+	msgTextBackground:AlphaTo(0,data.aliveTime / 3,data.aliveTime / 3 * 2)
 
 	local msgText = vgui.Create("DLabel")
 	msgText:SetPos(ScrW(), ScrH() / 2 - 20)
 	msgText:SetSize(ScrW(), ScrH())
-	msgText:SetText(msg)
+	msgText:SetText(data.msg)
 	msgText:SetTextColor(Color(255,255,255))
 	msgText:SetFont("Important")
 	msgText:SetAlpha(0)
 	msgText:SizeToContents()
 
-	msgText:MoveTo(ScrW() / 2 - textWidth / 2,ScrH() / 2 - 20,1,0)
-	msgText:AlphaTo(255,0.5)
+	msgText:MoveTo(ScrW() / 2 - textWidth / 2,ScrH() / 2 - 20,data.aliveTime / 3,0)
+	msgText:AlphaTo(255,data.aliveTime / 3)
 
-	msgText:MoveTo(0,ScrH() / 2 - 20,1,2)
-	msgText:AlphaTo(0,0.5,2)
+	msgText:MoveTo(0,ScrH() / 2 - 20,data.aliveTime / 3,data.aliveTime / 3 * 2)
+	msgText:AlphaTo(0,data.aliveTime / 3,data.aliveTime / 3 * 2)
 
-	timer.Simple(3, function()
+	timer.Simple(data.aliveTime, function()
 		msgText:Remove()
 		msgTextBackground:Remove()
 
 		currentlyPlayingMessage = false
 
 		if pendingMessages[1] != nil then
-			playGamemodeMessage(pendingMessages[1])
+			playGamemodeMessage(pendingMessages[1].msg, pendingMessages[1].aliveTime)
+			table.remove(pendingMessages, 1)
 		end
 	end)
 end

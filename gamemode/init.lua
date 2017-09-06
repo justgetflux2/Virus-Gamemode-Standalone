@@ -166,14 +166,16 @@ end
 function setupPhase()
 	timer.Create("minPlayerCheckLoop", 2, 0, function()
 		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			sendGamemodeMessage("Get ready for Round " .. currentRound.number)
+			sendGamemodeMessage("Get ready for Round " .. currentRound.number, 3)
 
 			for k, ply in pairs(player.GetAll()) do
 				ply:Respawn()
 			end
 
-			sendGamemodeMessage("Ready!") -- These automatically queue up and play after 3 seconds. No need for timers.
-			sendGamemodeMessage("Set!")
+			timer.Simple(7, function()
+				sendGamemodeMessage("Ready!", 1)
+				sendGamemodeMessage("Set!", 1)
+			end)
 
 			timer.Simple(9, roundStart)
 
@@ -250,8 +252,8 @@ function roundStart()
 
 	timer.Create("RoundTimer", config.roundTime, 1, roundFinish)
 
-	sendGamemodeMessage("You're infected, take down the survivors!", false, true)
-	sendGamemodeMessage("You're a survivor. Take down the infected!", true, false)
+	sendGamemodeMessage("You're infected, take down the survivors!", 2, false, true)
+	sendGamemodeMessage("You're a survivor. Take down the infected!", 2, true)
 
 	startClientsideRoundTimers()
 
@@ -279,6 +281,7 @@ util.AddNetworkString("Virus hitDetection")
 
 net.Receive("Virus hitDetection", function(len, ply)
 	local target = net.ReadEntity()
+	if target:GetNWInt("Virus") == 1 then return end
 	infectPlayer(target)
 end)
 

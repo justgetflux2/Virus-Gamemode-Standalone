@@ -1,7 +1,8 @@
 util.AddNetworkString("Virus sendGamemodeMessage")
 
-function sendGamemodeMessage(text, survivorExclusive, infectedExclusive)
+function sendGamemodeMessage(text, duration, survivorExclusive, infectedExclusive)
 	if text == nil then return end
+	duration = duration or 1
 	survivorExclusive = survivorExclusive or false
 	infectedExclusive = infectedExclusive or false
 
@@ -10,6 +11,7 @@ function sendGamemodeMessage(text, survivorExclusive, infectedExclusive)
 			if ply:GetNWInt("Virus") == 0 then
 				net.Start("Virus sendGamemodeMessage")
 				net.WriteString(text, 32)
+				net.WriteInt(duration, 10)
 				net.Send(ply)
 			end
 		end
@@ -18,12 +20,14 @@ function sendGamemodeMessage(text, survivorExclusive, infectedExclusive)
 			if ply:GetNWInt("Virus") == 1 then
 				net.Start("Virus sendGamemodeMessage")
 				net.WriteString(text, 32)
+				net.WriteInt(duration, 10)
 				net.Send(ply)
 			end
 		end
 	else
 		net.Start("Virus sendGamemodeMessage")
 		net.WriteString(text, 32)
+		net.WriteInt(duration, 10)
 		net.Broadcast()
 	end
 end
