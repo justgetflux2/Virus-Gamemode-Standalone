@@ -1,29 +1,32 @@
 AddCSLuaFile("shared.lua")
+
 AddCSLuaFile("cl_init.lua")
-AddCSLuaFile("cl_notice.lua")
+
+AddCSLuaFile("cl_music.lua")
+AddCSLuaFile("cl_message.lua")
 
 include("shared.lua")
+include("sv_message.lua")
 
 util.AddNetworkString("Virus updateCurrentRound")
 util.AddNetworkString("Virus RoundMusic")
 
-resource.AddFile("materials/hud_infected_radar.vmt")
-resource.AddFile("materials/hud_infected_rank.vmt")
-resource.AddFile("materials/hud_infected_score.vmt")
-resource.AddFile("materials/hud_infected_time.vmt")
+resource.AddFile("materials/hud/hud_infected_radar.vmt")
+resource.AddFile("materials/hud/hud_infected_rank.vmt")
+resource.AddFile("materials/hud/hud_infected_score.vmt")
+resource.AddFile("materials/hud/hud_infected_time.vmt")
 
-resource.AddFile("materials/hud_survivor_radar.vmt")
-resource.AddFile("materials/hud_survivor_rank.vmt")
-resource.AddFile("materials/hud_survivor_score.vmt")
-resource.AddFile("materials/hud_survivor_time.vmt")
+resource.AddFile("materials/hud/hud_survivor_radar.vmt")
+resource.AddFile("materials/hud/hud_survivor_rank.vmt")
+resource.AddFile("materials/hud/hud_survivor_score.vmt")
+resource.AddFile("materials/hud/hud_survivor_time.vmt")
 
-resource.AddFile("materials/hud_survivor_ammo.vmt")
-
+resource.AddFile("materials/hud/hud_survivor_ammo.vmt")
 
 --[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) // TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]
 
-Virus = { }				//infected players list
+Virus = {} // Infected players list
 ModName = "Virus"
 
 local config = {
@@ -197,51 +200,29 @@ function enableThirdPerson(ply)
 	ply:SetNWInt("thirdperson", 1)
 end
 
-util.AddNetworkString("Virus sendGamemodeMessage")
-local function sendGamemodeMessage(text, survivorExclusive, infectedExclusive)
-	if text == nil then return end
-	survivorExclusive = survivorExclusive or false
-	infectedExclusive = infectedExclusive or false
-
-	if survivorExclusive then
-		for k, ply in pairs(player.GetAll()) do
-			if ply:GetNWInt("Virus") == 0 then
-				net.Start("Virus sendGamemodeMessage")
-				net.WriteString(text, 32)
-				net.Send(ply)
-			end
-		end
-	elseif infectedExclusive then
-		for k, ply in pairs(player.GetAll()) do
-			if ply:GetNWInt("Virus") == 1 then
-				net.Start("Virus sendGamemodeMessage")
-				net.WriteString(text, 32)
-				net.Send(ply)
-			end
-		end
-	else
-		net.Start("Virus sendGamemodeMessage")
-		net.WriteString(text, 32)
-		net.Broadcast()
-	end
-end
-
 function setupPhase()
 	timer.Create("minPlayerCheckLoop", 2, 0, function()
 		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			sendGamemodeMessage("Get ready for Round " .. currentRound.number)
+			sendGamemodeMessage("Get ready for Round " .. currentRound.number, false, false)
 
 			for k, ply in pairs(player.GetAll()) do
 				ply:Respawn()
 			end
 
-			sendGamemodeMessage("Ready!")
-			sendGamemodeMessage("Set!")
+			timer.Simple(2, function()
+				sendGamemodeMessage("Ready!")
+			end)
 
-			timer.Simple(9, roundStart)
+			timer.Simple(3, preparationBridge)
+
 			timer.Remove("minPlayerCheckLoop")
 		end
 	end)
+end
+
+function preparationBridge()
+	sendGamemodeMessage("Set!")
+	timer.Simple(1, roundStart)
 end
 
 util.AddNetworkString("Virus sendStartGUIRoundTimers")
@@ -256,7 +237,6 @@ local function checkRoundState()
 	local playerList = player.GetAll()
 
 	if currentRound.noOfInfected == 0 && playerList != nil then
-		local randomPlayer = playerList[math.random(1, #playerList)]
 		generateFirstInfected() // TODO What happens when there is 1 player left and they get infected?
 	end
 
@@ -264,8 +244,6 @@ local function checkRoundState()
 		roundFinish(true)
 	end
 end
-
-local gracedPlayer
 
 local function registerInfected(ply) // Internal function
 	table.insert(Virus, ply)
@@ -282,6 +260,8 @@ local function infectPlayer(ply)	// set ply to nil for a random player
 	currentRound.noOfInfected = currentRound.noOfInfected + 1
 	checkRoundState()
 end
+
+local gracedPlayer
 
 local function generateFirstInfected()
 	local players = player.GetAll()
@@ -303,6 +283,8 @@ local function generateFirstInfected()
 	infectPlayer(players[randomNumber])
 end
 
+util.AddNetworkString("Virus roundMusic")
+
 function roundStart()
 	currentRound.playerList = player.GetAll()
 	currentRound.noOfPlayers = #currentRound.playerList
@@ -314,6 +296,7 @@ function roundStart()
 
 	sendGamemodeMessage("You're infected, take down the survivors!", false, true)
 	sendGamemodeMessage("You're a survivor. Take down the infected!", true, false)
+	sendGamemodeMessage("The round has begun!", false, false)
 
 	startClientsideRoundTimers()
 
@@ -321,16 +304,18 @@ function roundStart()
 		net.WriteInt(currentRound.number, 10)
 	net.Broadcast()
 
-	umsg.Start("VirusRoundMusic") // TODO Change to net messages
-	umsg.End()
+	net.Start("Virus roundMusic")
+	net.Broadcast()
 end
 
 function GM:PlayerDisconnected(ply)
 	if table.HasValue(currentRound.playerList, ply) then
 		currentRound.noOfPlayers = currentRound.noOfPlayers - 1
+
 		if ply:GetNWInt("Virus") == 1 then
 			currentRound.noOfInfected = currentRound.noOfInfected - 1
 		end
+
 		checkRoundState()
 	end
 end

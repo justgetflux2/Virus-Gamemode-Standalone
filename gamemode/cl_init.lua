@@ -1,5 +1,6 @@
-include( "shared.lua" )
-include( "cl_notice.lua" )
+include("shared.lua")
+
+include("cl_music.lua")
 
 local materials = { // TODO Consider adding prefixes to the materials here. It's unlikely there will be conflicts however.
 	clock = {
@@ -103,71 +104,6 @@ function GM:PlayerCanPickupItem( ply, item )
 	return false
 end
 
-local pendingMessages = {}
-local currentlyPlayingMessage = false
-
-local function playGamemodeMessage(msg)
-	if currentlyPlayingMessage then
-		table.insert(pendingMessages, msg)
-		return
-	end
-
-	currentlyPlayingMessage = true
-
-	if table.HasValue(pendingMessages, msg) then
-		table.RemoveByValue(pendingMessages, msg)
-	end
-
-	surface.SetFont("Important")
-	local maxWidth = surface.GetTextSize(msg)
-
-	local msgTextBackground = vgui.Create("DLabel")
-	msgTextBackground:SetPos(ScrW() + 2, ScrH() / 2 - 20 + 2)
-	msgTextBackground:SetText(msg)
-	msgTextBackground:SetFont("Important")
-	msgTextBackground:SetTextColor(Color(0,30,120))
-	msgTextBackground:SetSize(800,400)
-	msgTextBackground:SetAlpha(0)
-	msgTextBackground:SizeToContents()
-
-	msgTextBackground:MoveTo(ScrW() / 2 - maxWidth / 2 + 2,ScrH() / 2 - 20 + 2,1,0,1)
-	msgTextBackground:AlphaTo(255,0.5)
-
-	msgTextBackground:MoveTo(2,ScrH() / 2 - 20 + 2,1,2,1)
-	msgTextBackground:AlphaTo(0,0.5,2)
-
-	local msgText = vgui.Create("DLabel")
-	msgText:SetPos(ScrW(), ScrH() / 2 - 20)
-	msgText:SetText(msg)
-	msgText:SetFont("Important")
-	msgText:SetTextColor(Color(255,255,255))
-	msgText:SetSize(800,400)
-	msgText:SetAlpha(0)
-	msgText:SizeToContents()
-
-	msgText:MoveTo(ScrW() / 2 - maxWidth / 2,ScrH() / 2 - 20,1,0,1)
-	msgText:AlphaTo(255,0.5)
-
-	msgText:MoveTo(0,ScrH() / 2 - 20,1,2,1)
-	msgText:AlphaTo(0,0.5,2)
-
-	timer.Simple(3, function() // Messages take 3 seconds.
-		msgText:Remove()
-		msgTextBackground:Remove()
-
-		currentlyPlayingMessage = false
-
-		if pendingMessages[1] != nil then
-			playGamemodeMessage(pendingMessages[1])
-		end
-	end)
-end
-
-net.Receive("Virus sendGamemodeMessage", function()
-	local msg = net.ReadString(32)
-	playGamemodeMessage(msg)
-end)
-
 local roundEndPhase = false
 local transitionStarted = false
 local place
@@ -179,23 +115,16 @@ local function delayedGetPlace() // Must be delayed because setting NW Ints take
 	return 0
 end
 
-local firedOnce = false // TODO Change this immediataely
-
 local function drawRoundEndPhase()
-	if firedOnce then return end
-
 	place = place or delayedGetPlace()
 
 	local ending = "th"
-	if place % 10 == 1 then ending = "st" end
-	if place % 10 == 2 then ending = "nd" end
-	if place % 10 == 3 then ending = "rd" end
+	if place % 10 == 1 then ending = "st";end
+	if place % 10 == 2 then ending = "nd";end
+	if place % 10 == 3 then ending = "rd";end
 
 	if place != 0 then
-		firedOnce = true
 		playGamemodeMessage(place .. ending .. " Place")
-	else
-		timer.Simple(0.1, drawRoundEndPhase)
 	end
 
 	if !transitionStarted then
@@ -273,6 +202,7 @@ function GM:HUDPaint()
 		drawClock()
 		drawRoundNumber()
 		drawAmmo()
+		drawImportantMessage()
 		//self:PaintNotes
 		//drawPendingHUDNotes() // TODO: Reimplement HUD notes.
 	end
@@ -294,24 +224,6 @@ function GM:HUDShouldDraw(name) // Stops the default HUD from drawing
 	end
 	return true
 end
-
-function VirusMusicTest( um )
-	surface.PlaySound("gmodtower/virus/roundplay" .. math.random(1,5) .. ".mp3")
-	surface.PlaySound("gmodtower/virus/stinger.mp3")
-end
-usermessage.Hook("VirusRoundMusic", VirusMusicTest)
-
-function SurvivorsWin( um )
-	surface.PlaySound( "gmodtower/virus/roundend_survivors.mp3")
-	surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
-	surface.PlaySound("gmodtower/virus/ui/menu.wav")
-end
-usermessage.Hook("SurvivorsWin", SurvivorsWin)
-
-function VirusWaitForInfected( um )
-	surface.PlaySound("gmodtower/virus/waiting_forinfection"..math.random(1,8)..".mp3")
-end
-usermessage.Hook("VirusWaitForInfected", VirusWaitForInfected)
 
 local function initialiseRoundTimer()
 	GAMEMODE.timeLeft = config.roundTime
@@ -335,7 +247,7 @@ hook.Add("Think", "Virus infectedGlow", function() // TODO Move out of think hoo
 		infectedglow.r = 70
 		infectedglow.g = 255
 		infectedglow.b = 70
-		infectedglow.brightness = 8
+		infectedglow.brightness = 40
 		infectedglow.Decay = 100
 		infectedglow.Size = 90
 		infectedglow.DieTime = CurTime() + 1
