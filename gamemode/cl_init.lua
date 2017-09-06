@@ -11,7 +11,7 @@ VIRUS.config = {
 	roundTime = 110 -- 180 by default
 }
 
-local currentRound = {
+VIRUS.currentRound = {
 	   number = 1,
 	   playerList = {},
 	   noOfPlayers = 0,
@@ -44,7 +44,7 @@ surface.CreateFont( "fuckhd", {
 })
 
 function GM:Initialize()
-	GAMEMODE.message = "Waiting for at least 4 players..."
+	GAMEMODE.message = "Waiting for at least 4 players..." -- TODO Change how this works. Public privacy is not needed.
 	GAMEMODE.timeLeft = 0
 end
 
@@ -93,7 +93,7 @@ hook.Add("Think", "Virus infectedGlow", function() -- TODO We need to make this 
 		infectedglow.r = 70
 		infectedglow.g = 255
 		infectedglow.b = 70
-		infectedglow.brightness = 40
+		infectedglow.brightness = 8
 		infectedglow.Decay = 100
 		infectedglow.Size = 90
 		infectedglow.DieTime = CurTime() + 1
@@ -101,5 +101,5 @@ hook.Add("Think", "Virus infectedGlow", function() -- TODO We need to make this 
 end)
 
 net.Receive("Virus updateCurrentRound", function()
-	currentRound.number = net.ReadInt(10)
+	VIRUS.currentRound.number = net.ReadInt(10)
 end)

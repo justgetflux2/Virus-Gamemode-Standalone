@@ -13,10 +13,10 @@ include("sv_message.lua")
 util.AddNetworkString("Virus updateCurrentRound")
 util.AddNetworkString("Virus roundMusic")
 
---[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) // TODO add custom models
+--[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) -- TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]
 
-Virus = {} // Infected players list
+Virus = {} -- Infected players list
 ModName = "Virus"
 
 local config = {
@@ -24,7 +24,7 @@ local config = {
 }
 
 local models = {
-	normal = Model("models/player/Group03/male_04.mdl"), // TODO: This needs to be multiple player models
+	normal = Model("models/player/Group03/male_04.mdl"), -- TODO: This needs to be multiple player models
 	virus = Model("models/player/virusi.mdl"),
 	thirdPerson = Model("models/error.mdl")
 }
@@ -43,7 +43,7 @@ function GM:Initialize()
 end
 
 function GM:PlayerInitialSpawn(ply)
-	ply:SetCollisionGroup(11) // Disables collision with other players.
+	ply:SetCollisionGroup(11) -- Disables collision with other players.
 end
 
 function GM:PlayerDisconnected(ply)
@@ -56,7 +56,6 @@ function GM:PlayerDisconnected(ply)
 end
 
 function GM:CanPlayerSuicide(ply)
-	//ply:PrintMessage( HUD_PRINTCONSOLE, "Trying to escape life I see.\n" )
 	return false
 end
 
@@ -93,7 +92,7 @@ local function attachFireSprite(target)
 	local sprite2 = makeSprite(pos2, target, "9")
 
 	sprite1.child = sprite2
-	target.flameSprite = sprite1
+	target.fireSprite = sprite1
 end
 
 local function configurePlayerAsVirus(ply)
@@ -164,6 +163,7 @@ function disableThirdPerson(ply)
 	if ply:GetNWInt("thirdperson") == 0 then
 		return
 	end
+
 	local entity = ply:GetViewEntity()
 	ply:SetNWInt("thirdperson", 0)
 	ply:SetViewEntity(ply)
@@ -193,26 +193,20 @@ end
 function setupPhase()
 	timer.Create("minPlayerCheckLoop", 2, 0, function()
 		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			sendGamemodeMessage("Get ready for Round " .. currentRound.number, false, false)
+			sendGamemodeMessage("Get ready for Round " .. currentRound.number)
 
 			for k, ply in pairs(player.GetAll()) do
 				ply:Respawn()
 			end
 
-			timer.Simple(2, function()
-				sendGamemodeMessage("Ready!")
-			end)
+			sendGamemodeMessage("Ready!") -- These automatically queue up and play after 3 seconds. No need for timers.
+			sendGamemodeMessage("Set!")
 
-			timer.Simple(3, preparationBridge)
+			timer.Simple(9, roundStart)
 
 			timer.Remove("minPlayerCheckLoop")
 		end
 	end)
-end
-
-function preparationBridge()
-	sendGamemodeMessage("Set!")
-	timer.Simple(1, roundStart)
 end
 
 util.AddNetworkString("Virus sendStartGUIRoundTimers")
@@ -227,21 +221,21 @@ local function checkRoundState()
 	local playerList = player.GetAll()
 
 	if currentRound.noOfInfected == 0 && playerList != nil then
-		generateFirstInfected() // TODO What happens when there is 1 player left and they get infected?
+		generateFirstInfected() -- TODO What happens when there is 1 player left and they get infected?
 	end
 
 	if currentRound.noOfPlayers == currentRound.noOfInfected then
-		roundFinish(true)
+		roundFinish()
 	end
 end
 
-local function registerInfected(ply) // Internal function
+local function registerInfected(ply) -- Internal function
 	table.insert(Virus, ply)
 	ply:SetNWInt("Virus", 1)
 	ply:EmitSound("gmodtower/virus/stinger.mp3")
 end
 
-local function infectPlayer(ply)	// set ply to nil for a random player
+local function infectPlayer(ply) -- set ply to nil for a random player
 	registerInfected(ply)
 
 	enableThirdPerson(ply)
@@ -263,8 +257,7 @@ local function generateFirstInfected()
 		elseif players[randomNumber - 1] != nil then
 			randomNumber = randomNumber - 1
 		else
-			print("WARNING // Critical error in generation process.")
-			debug.Trace()
+			error("First infected couldn't be generated due to a significant tick issue.")
 			roundStart()
 		end
 	end
@@ -286,7 +279,6 @@ function roundStart()
 
 	sendGamemodeMessage("You're infected, take down the survivors!", false, true)
 	sendGamemodeMessage("You're a survivor. Take down the infected!", true, false)
-	sendGamemodeMessage("The round has begun!", false, false)
 
 	startClientsideRoundTimers()
 
@@ -312,9 +304,9 @@ end
 
 local function infectedRadialHitDetection()
 	for i, infected in pairs(Virus) do
-		if !infected:IsValid() then return end // check incase no viruses are there at all, caused by someone ragequitting right at round start
+		if !infected:IsValid() then return end -- check incase no viruses are there at all, caused by someone ragequitting right at round start
 
-		local Objects = ents.FindInSphere( infected:GetPos( ), 30 ) // TODO: This radius was originally 20. Reconsider it if the detection radius is too forgiving.
+		local Objects = ents.FindInSphere( infected:GetPos( ), 30 ) -- TODO: This radius was originally 20. Reconsider it if the detection radius is too forgiving.
 		for _, ply in pairs(Objects) do
 			if ply:IsPlayer( ) && ply:GetNWInt( "Virus" ) != 1 then
 				infectPlayer(ply)
@@ -329,17 +321,17 @@ end
 
 util.AddNetworkString("Virus drawRoundEndPhase")
 
-function roundFinish(forced) // TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
-	if !forced then timer.Remove( "RoundTimer"); end
+function roundFinish() -- TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
+	timer.Remove("RoundTimer")
 
 	net.Start("Virus drawRoundEndPhase")
 	net.Broadcast()
 
-	for i, ply in ipairs( Virus ) do // TODO: This mechanic is slightly redundant. Players who start off infected should probably have their performance compared to other infected, not to the game in general.
-		ply:SetNWInt("Place", #Virus - i + 2) // The +2 is here because if the player won without ever getting infected, he would inadvertantly get second place anyway, with no one being first place.
-	end // TODO: It's a coinflip whether the place is set correctly or not. Need to fix this.
+	for i, ply in ipairs( Virus ) do -- TODO: This mechanic is slightly redundant. Players who start off infected should probably have their performance compared to other infected, not to the game in general.
+		ply:SetNWInt("Place", #Virus - i + 2) -- The +2 is here because if the player won without ever getting infected, he would inadvertantly get second place anyway, with no one being first place.
+	end -- TODO: It's a coinflip whether the place is set correctly or not. Need to fix this.
 
-	timer.Simple(6, transitionToSetupPhase) // TODO: Fine tune the timer. Is it too long or necessary length for the show of rankings?
+	timer.Simple(6, transitionToSetupPhase) -- TODO: Fine tune the timer. Is it too long or necessary length for the show of rankings?
 end
 
 function transitionToSetupPhase()
@@ -349,11 +341,11 @@ function transitionToSetupPhase()
 		Msg("Changing to the next map.")
 
 		for k, ply in pairs( player.GetAll() ) do
-			ply:ChatPrint("Changing to the next map!") // Announce it too all players, else they will be confused!
+			ply:ChatPrint("Changing to the next map!") -- Announce it too all players, else they will be confused!
 		end
 
-		timer.Simple(5, function()  // Give the player 5 seconds to read that the map will change before actually changing it directly at round 4!
-			RunConsoleCommand("changelevel", game.GetMapNext()) // TODO: GetMapNext() finds maps SET BY the mapcyclefile console command.
+		timer.Simple(5, function()  -- Give the player 5 seconds to read that the map will change before actually changing it directly at round 4!
+			RunConsoleCommand("changelevel", game.GetMapNext()) -- TODO: GetMapNext() finds maps SET BY the mapcyclefile console command.
 		end)
 
 		return
@@ -365,7 +357,7 @@ function transitionToSetupPhase()
 	end
 
 	for k, ply in pairs(player.GetAll()) do
-		configurePlayerAsHuman(ply) // TODO: Need to remove sprites from humans
+		configurePlayerAsHuman(ply) -- TODO: Need to remove sprites from humans
 		ply:Spawn()
 	end
 
@@ -382,3 +374,6 @@ local function survivorNoDamage(target, dmginfo)
 end
 
 hook.Add("EntityTakeDamage", "survivorNoDamage", survivorNoDamage)
+
+concommand.Add("endround", roundFinish)
+concommand.Add("infect", function(ply, cmd, args, argStr) infectPlayer(ply) end)

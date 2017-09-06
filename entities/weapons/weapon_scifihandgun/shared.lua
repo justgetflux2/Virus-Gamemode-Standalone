@@ -21,37 +21,31 @@ SWEP.Primary.ClipSize	 = 10
 SWEP.Primary.DefaultClip = 45
 SWEP.Primary.Ammo	 = "pistol"
 SWEP.Primary.Sound	 = "GModTower/virus/weapons/9mm/shoot.wav"
-SWEP.Primary.Effect		= "toy_zap" 
+SWEP.Primary.Effect		= "toy_zap"
 
 SWEP.Secondary = SWEP.Primary
 
-
 function SWEP:Initialize()
-    self:SetWeaponHoldType( self.HoldType )
+	self:SetHoldType( self.HoldType )
 end
-
 
 function SWEP:PrimaryAttack()
-	if self.BaseClass.PrimaryAttack(self.Weapon) then self.Primary.Effect return end
-
-
-
+	-- if self.BaseClass.PrimaryAttack(self.Weapon) then
+	-- 	self.Primary.Effect
+	-- 	return
+	-- end TODO This probably needs to be resolved...
 end
-
 
 SWEP.DamageType = bit.bor(DMG_SHOCK,DMG_DISSOLVE)
 
 SWEP.TracerCount 		= 1 	--0 disables, otherwise, 1 in X chance
 
 function SWEP:DoImpactEffect( tr, dmgtype )
-
 	if( tr.HitSky ) then return true; end
-	
+
 	util.Decal( "fadingscorch", tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal );
 	sound.Play( "Weapon_Gamma.Shocking", tr.HitPos + tr.HitNormal, tr.HitPos - tr.HitNormal, 180 );
-	
 
-	
 	-- is this even the correct way to handle this?
 	if( game.SinglePlayer() or SERVER or not self:IsCarriedByLocalPlayer() or IsFirstTimePredicted() ) then
 
@@ -60,7 +54,7 @@ function SWEP:DoImpactEffect( tr, dmgtype )
 		effect:SetNormal( tr.HitNormal );
 
 		util.Effect( "Gamma_Impact", effect );
-		
+
 
 		local effect = EffectData();
 		effect:SetOrigin( tr.HitPos );
@@ -68,31 +62,29 @@ function SWEP:DoImpactEffect( tr, dmgtype )
 		effect:SetDamageType( dmgtype );
 
 		util.Effect( "RagdollImpact", effect );
-		
 	end
 
     return true;
-
 end
 
 
 function SWEP:ShootBullet( damage, num_bullets, aimcone )
 	local bullet = {}
 	bullet.Num 		= 1
-	bullet.Src 		= self.Owner:GetShootPos()			
-	bullet.Dir 		= self.Owner:GetAimVector()			
-	bullet.Spread 	= Vector( 0,0 ,0 )		
-	bullet.Tracer	= 1			
-    bullet.TracerName = "GammaLaser"	
-	bullet.Force	= 5000									
+	bullet.Src 		= self.Owner:GetShootPos()
+	bullet.Dir 		= self.Owner:GetAimVector()
+	bullet.Spread 	= Vector( 0,0 ,0 )
+	bullet.Tracer	= 1
+    bullet.TracerName = "GammaLaser"
+	bullet.Force	= 5000
 	bullet.Damage	= 25
 	bullet.AmmoType = "AR2AltFire"
 	bullet.Callback = function(attacker,tr,dmginfo)
-			ParticleEffect("electrical_arc_01_system",tr.HitPos,Angle(0,0,0),nil)
-			end
+		ParticleEffect("electrical_arc_01_system",tr.HitPos,Angle(0,0,0),nil)
+	end
+
 	self.Owner:FireBullets( bullet )
 	self:ShootEffects()
-	
 end
 
 SWEP.Primary.NumShots	= 1		-- How many bullets to shoot per trigger pull

@@ -50,22 +50,27 @@ local function drawRoundEndPhase()
 	place = place or delayedGetPlace()
 
 	local ending = "th"
-	if place % 10 == 1 then ending = "st";end
-	if place % 10 == 2 then ending = "nd";end
-	if place % 10 == 3 then ending = "rd";end
+	if place % 10 == 1 then ending = "st" end
+	if place % 10 == 2 then ending = "nd" end
+	if place % 10 == 3 then ending = "rd" end
 
-	if place != 0 then
-		playGamemodeMessage(place .. ending .. " Place")
-	end
+	if place != 0 then return end
 
 	if !transitionStarted then
 		timer.Simple(3, function()
 			roundEndPhase = false
-			place = nil
 			transitionStarted = false
+			place = nil
 		end)
+
+		transitionStarted = true
+		playGamemodeMessage(place .. ending .. " Place")
 	end
 end
+
+net.Receive("Virus drawRoundEndPhase", function()
+	roundEndPhase = true
+end)
 
 local function drawClock()
 	local mins = math.floor(GAMEMODE.timeLeft / 60)
@@ -102,22 +107,22 @@ local function drawRoundNumber()
 		surface.DrawTexturedRect(xOffset, 0, 96, 96)
 	end
 
-	draw.DrawText(currentRound.number, "VirusHUD", xOffset + 48, 34, Color(255, 255, 255, 255),
+	draw.DrawText(VIRUS.currentRound.number, "VirusHUD", xOffset + 48, 34, Color(255, 255, 255, 255),
 		TEXT_ALIGN_CENTER)
 end
 
 local function drawAmmo()
 	if LocalPlayer():GetNWInt("Virus") == 1 then return end
+
 	local xOffset = ScrW() - 240
 	local yOffset = ScrH() - 160
 
 	surface.SetMaterial(materials.ammo)
-	surface.SetDrawColor(Color(41, 128, 185, 255))
-	surface.DrawTexturedRect(xOffset, ScrH() - 160, 200, 120, Color(41, 128, 185, 255))
+	surface.SetDrawColor(Color(255, 255, 255, 255))
+	surface.DrawTexturedRect(xOffset, ScrH() - 160, 200, 120)
 
 	local activeWeapon = LocalPlayer():GetActiveWeapon()
-	if activeWeapon == nil then return end
-	if activeWeapon:GetPrimaryAmmoType() == nil then return end
+	if activeWeapon == nil or activeWeapon:GetPrimaryAmmoType() == nil then return end
 
 	local ammoCapacity = LocalPlayer():GetAmmoCount(activeWeapon:GetPrimaryAmmoType())
 	local ammoCount = activeWeapon:Clip1() .. " / " .. ammoCapacity
@@ -131,14 +136,10 @@ function GM:HUDPaint()
 	else
 		drawClock()
 		drawRoundNumber()
-		drawAmmo()
-		drawImportantMessage()
+		pcall(drawAmmo) -- Run through pcall() so errors aren't returned.
+		--drawImportantMessage() TODO Reimplement
 	end
 end
-
-net.Receive("Virus drawRoundEndPhase", function()
-	roundEndPhase = true
-end)
 
 local hide = {
 	CHudHealth = true,
