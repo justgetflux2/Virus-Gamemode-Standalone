@@ -35,7 +35,6 @@ end
 
 function SWEP:ShootEffects(sound, recoil)
 	self.BaseClass.ShootEffects(self.Weapon, sound, recoil)
-    self:CustomParticles()
 end
 
 function SWEP:CanPrimaryAttack()
@@ -97,41 +96,3 @@ function SWEP:Think()
 end
 
 --SWEP.CanSecondaryAttack = SWEP.CanPrimaryAttack
-
-function SWEP:CustomParticles()
-local vm = self.Owner:GetViewModel()
-if self.Owner:GetActiveWeapon() == nil then return end
-if self.Owner:GetNWBool("Silencer") == true then
-ParticleEffectAttach("muzzleflash_suppressed",PATTACH_POINT_FOLLOW,vm,vm:LookupAttachment(self.MuzzleAttachment or "muzzle"))
-else
---[[timer.Create("fuckfire",0.0,1,function()ParticleEffectAttach("muzzleflash_ak74",PATTACH_POINT_FOLLOW,vm,vm:LookupAttachment(self.MuzzleAttachment or "muzzle")) end)
-timer.Create("fuckfire",0.0,2,function()ParticleEffectAttach("muzzleflash_m14",PATTACH_POINT_FOLLOW,vm,vm:LookupAttachment(self.MuzzleAttachment or "muzzle")) end)]]
-timer.Create("fuck2fire",1,1,function()ParticleEffectAttach("VIEW_Weaponry_AfterSmoke_FX",PATTACH_POINT_FOLLOW,vm,vm:LookupAttachment(self.MuzzleAttachment or "muzzle")) end)
-ParticleEffectAttach(self.MuzzleName or "btb_vm_small",PATTACH_POINT_FOLLOW,vm,vm:LookupAttachment(self.MuzzleAttachment or "muzzle"))
-end
-end
-
-
-function SWEP:DispatchEffect(EFFECTSTR)
-	local pPlayer=self.Owner;
-	if !pPlayer then return end
-	local view;
-	if CLIENT then view=GetViewEntity() else view=pPlayer:GetViewEntity() end
-		if ( !pPlayer:IsNPC() && view:IsPlayer() ) then
-			ParticleEffectAttach( EFFECTSTR, PATTACH_POINT_FOLLOW, pPlayer:GetViewModel(), pPlayer:GetViewModel():LookupAttachment( "muzzle" ) );
-		else
-			ParticleEffectAttach( EFFECTSTR, PATTACH_POINT_FOLLOW, pPlayer, pPlayer:LookupAttachment( "anim_attachment_rh" ) );
-		end
-end
-
-function SWEP:ShootEffect(EFFECTSTR,startpos,endpos)
-	local pPlayer=self.Owner;
-	if !pPlayer then return end
-	local view;
-	if CLIENT then view=GetViewEntity() else view=pPlayer:GetViewEntity() end
-		if ( !pPlayer:IsNPC() && view:IsPlayer() ) then
-			util.ParticleTracerEx( EFFECTSTR, self.Weapon:GetAttachment( self.Weapon:LookupAttachment( "muzzle" ) ).Pos,endpos, true, pPlayer:GetViewModel():EntIndex(), pPlayer:GetViewModel():LookupAttachment( "muzzle" ) );
-		else
-			util.ParticleTracerEx( EFFECTSTR, pPlayer:GetAttachment( pPlayer:LookupAttachment( "anim_attachment_rh" ) ).Pos,endpos, true,pPlayer:EntIndex(), pPlayer:LookupAttachment( "anim_attachment_rh" ) );
-		end
-end
