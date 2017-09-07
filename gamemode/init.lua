@@ -58,7 +58,7 @@ function GM:PlayerDisconnected(ply)
 end
 
 function GM:CanPlayerSuicide(ply)
-	return false
+	return true -- TODO Change back to false when not debugging.
 end
 
 function GM:PlayerDeath(victim, Inflictor, killer)
@@ -158,10 +158,102 @@ function GM:PlayerLoadout(ply)
 			ply:Give(wep)
 		end
 
-		ply:Give(otherWeaponsSet1[math.random(1, #otherWeaponsSet1)])
+		local options = table.Copy(otherWeaponsSet1)
+
+		for i = 1, 3 do
+			local rnd = math.random(#options)
+			ply:Give(options[rnd])
+			table.remove(options, rnd)
+		end
+
+		options = nil -- ready for garbage collection
 	end
 
 	return true
+end
+
+util.AddNetworkString("Virus sendStartGUIRoundTimers")
+
+local function startClientsideRoundTimers()
+	net.Start("Virus sendStartGUIRoundTimers")
+	net.WriteInt(config.roundTime, 3)
+	net.Broadcast()
+end
+
+local function registerInfected(ply) -- Internal function
+	table.insert(Virus, ply)
+	ply:SetNWInt("Virus", 1)
+	ply:EmitSound("gmodtower/virus/stinger.mp3")
+end
+
+local function transitionToSetupPhase()
+	currentRound.number = currentRound.number + 1
+
+	if (currentRound.number == 9) then
+		Msg("Changing to the next map.")
+
+		for k, ply in pairs( player.GetAll() ) do
+			ply:ChatPrint("Changing to the next map!") -- Announce it too all players, else they will be confused!
+		end
+
+		timer.Simple(5, function()  -- Give the player 5 seconds to read that the map will change before actually changing it directly at round 4!
+			RunConsoleCommand("changelevel", game.GetMapNext()) -- TODO: GetMapNext() finds maps SET BY the mapcyclefile console command.
+		end)
+
+		return
+	end
+
+	for k, ent in pairs(createdSprites) do
+		if ent == nil || !ent:IsValid() then continue end
+		ent:Remove()
+	end
+
+	for k, ply in pairs(player.GetAll()) do
+		configurePlayerAsHuman(ply) -- TODO: Need to remove sprites from humans
+		ply:Spawn()
+	end
+
+	createdSprites = {}
+	Virus = {}
+
+	setupPhase()
+end
+
+local function roundFinish() -- TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
+	timer.Remove("RoundTimer")
+
+	for k, ply in pairs(player.GetAll()) do
+		net.Start("Virus drawRoundEndPhase")
+		net.WriteInt(#Virus, 2) -- TODO Implement real place system
+		net.Send(ply)
+	end
+
+	net.Start("Virus survivorsWin") -- TODO Sometimes survivors don't win. Obviously.
+	net.Broadcast()
+
+	timer.Simple(6, transitionToSetupPhase) -- TODO: Fine tune the timer. Is it too long or necessary length for the show of rankings?
+end
+
+local function roundStart()
+	currentRound.playerList = player.GetAll()
+	currentRound.noOfPlayers = #currentRound.playerList
+	currentRound.noOfInfected = 0
+
+	generateFirstInfected()
+
+	timer.Create("RoundTimer", config.roundTime, 1, roundFinish)
+
+	sendGamemodeMessage("You're infected, take down the survivors!", 2, false, true)
+	sendGamemodeMessage("You're a survivor. Take down the infected!", 2, true)
+
+	startClientsideRoundTimers()
+
+	net.Start("Virus updateCurrentRound")
+		net.WriteInt(currentRound.number, 10)
+	net.Broadcast()
+
+	net.Start("Virus roundMusic")
+	net.Broadcast()
 end
 
 local function setupPhase()
@@ -195,32 +287,6 @@ function GM:Initialize()
 	setupPhase();
 end
 
-util.AddNetworkString("Virus sendStartGUIRoundTimers")
-
-local function startClientsideRoundTimers()
-	net.Start("Virus sendStartGUIRoundTimers")
-	net.WriteInt(config.roundTime, 3)
-	net.Broadcast()
-end
-
-local function checkRoundState()
-	local playerList = player.GetAll()
-
-	if currentRound.noOfInfected == 0 && playerList != nil then
-		generateFirstInfected() -- TODO What happens when there is 1 player left and they get infected?
-	end
-
-	if currentRound.noOfPlayers == currentRound.noOfInfected then
-		roundFinish()
-	end
-end
-
-local function registerInfected(ply) -- Internal function
-	table.insert(Virus, ply)
-	ply:SetNWInt("Virus", 1)
-	ply:EmitSound("gmodtower/virus/stinger.mp3")
-end
-
 local function infectPlayer(ply) -- set ply to nil for a random player
 	registerInfected(ply)
 
@@ -252,29 +318,19 @@ local function generateFirstInfected()
 	infectPlayer(players[randomNumber])
 end
 
-util.AddNetworkString("Virus roundMusic")
+local function checkRoundState()
+	local playerList = player.GetAll()
 
-function roundStart()
-	currentRound.playerList = player.GetAll()
-	currentRound.noOfPlayers = #currentRound.playerList
-	currentRound.noOfInfected = 0
+	if currentRound.noOfInfected == 0 && playerList != nil then
+		generateFirstInfected() -- TODO What happens when there is 1 player left and they get infected?
+	end
 
-	generateFirstInfected()
-
-	timer.Create("RoundTimer", config.roundTime, 1, roundFinish)
-
-	sendGamemodeMessage("You're infected, take down the survivors!", 2, false, true)
-	sendGamemodeMessage("You're a survivor. Take down the infected!", 2, true)
-
-	startClientsideRoundTimers()
-
-	net.Start("Virus updateCurrentRound")
-		net.WriteInt(currentRound.number, 10)
-	net.Broadcast()
-
-	net.Start("Virus roundMusic")
-	net.Broadcast()
+	if currentRound.noOfPlayers == currentRound.noOfInfected then
+		roundFinish()
+	end
 end
+
+util.AddNetworkString("Virus roundMusic")
 
 function GM:PlayerDisconnected(ply)
 	if table.HasValue(currentRound.playerList, ply) then
@@ -297,55 +353,6 @@ net.Receive("Virus hitDetection", function(len, ply)
 end)
 
 util.AddNetworkString("Virus drawRoundEndPhase")
-
-function roundFinish() -- TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
-	timer.Remove("RoundTimer")
-
-	net.Start("Virus drawRoundEndPhase")
-	net.Broadcast()
-
-	net.Start("Virus survivorsWin")
-	net.Broadcast()
-
-	for i, ply in ipairs( Virus ) do -- TODO: This mechanic is slightly redundant. Players who start off infected should probably have their performance compared to other infected, not to the game in general.
-		ply:SetNWInt("Place", #Virus - i + 2) -- The +2 is here because if the player won without ever getting infected, he would inadvertantly get second place anyway, with no one being first place.
-	end -- TODO: It's a coinflip whether the place is set correctly or not. Need to fix this.
-
-	timer.Simple(6, transitionToSetupPhase) -- TODO: Fine tune the timer. Is it too long or necessary length for the show of rankings?
-end
-
-function transitionToSetupPhase()
-	currentRound.number = currentRound.number + 1
-
-	if (currentRound.number == 9) then
-		Msg("Changing to the next map.")
-
-		for k, ply in pairs( player.GetAll() ) do
-			ply:ChatPrint("Changing to the next map!") -- Announce it too all players, else they will be confused!
-		end
-
-		timer.Simple(5, function()  -- Give the player 5 seconds to read that the map will change before actually changing it directly at round 4!
-			RunConsoleCommand("changelevel", game.GetMapNext()) -- TODO: GetMapNext() finds maps SET BY the mapcyclefile console command.
-		end)
-
-		return
-	end
-
-	for k, ent in pairs(createdSprites) do
-		if ent == nil || !ent:IsValid() then continue end
-		ent:Remove()
-	end
-
-	for k, ply in pairs(player.GetAll()) do
-		configurePlayerAsHuman(ply) -- TODO: Need to remove sprites from humans
-		ply:Spawn()
-	end
-
-	createdSprites = {}
-	Virus = {}
-
-	setupPhase()
-end
 
 local function survivorNoDamage(target, dmginfo)
 	if target:GetNWInt("Virus") == 0 && target:IsPlayer() then

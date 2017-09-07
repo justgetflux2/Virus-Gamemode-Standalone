@@ -34,43 +34,20 @@ local materials = { -- TODO Consider adding prefixes to the materials here. It's
 	ammo = Material("gmod_tower/virus/hud_survivor_ammo")
 }
 
-local place
-
-local function delayedGetPlace() -- Must be delayed because setting NW Ints takes a frame to catch up on clientside to obtain.
-	timer.Simple(0.1, function()
-		place = LocalPlayer():GetNWInt("place")
-	end)
-	return 0
-end
-
-local roundEndPhase = false
-local transitionStarted = false
-
 local function drawRoundEndPhase()
-	place = place or delayedGetPlace()
+	local place = net.ReadInt(2)
+	if place == nil then return end
 
 	local ending = "th"
+
 	if place % 10 == 1 then ending = "st" end
 	if place % 10 == 2 then ending = "nd" end
 	if place % 10 == 3 then ending = "rd" end
 
-	if place != 0 then return end
-
-	if !transitionStarted then
-		timer.Simple(6, function()
-			roundEndPhase = false
-			transitionStarted = false
-			place = nil
-		end)
-
-		transitionStarted = true
-		playGamemodeMessage(place .. ending .. " Place", 6)
-	end
+	playGamemodeMessage(place .. ending .. " Place", 6)
 end
 
-net.Receive("Virus drawRoundEndPhase", function()
-	roundEndPhase = true
-end)
+net.Receive("Virus drawRoundEndPhase", drawRoundEndPhase)
 
 local function drawClock()
 	local mins = math.floor(VIRUS.currentRound.timeLeft / 60)
@@ -131,14 +108,10 @@ local function drawAmmo()
 end
 
 function GM:HUDPaint()
-	if roundEndPhase then
-		drawRoundEndPhase()
-	else
-		drawClock()
-		drawRoundNumber()
-		pcall(drawAmmo) -- Run through pcall() so errors aren't returned.
-		--drawImportantMessage() TODO Reimplement
-	end
+	drawClock()
+	drawRoundNumber()
+	pcall(drawAmmo) -- Run through pcall() so errors aren't returned.
+	--drawImportantMessage() TODO Reimplement
 end
 
 local hide = {
