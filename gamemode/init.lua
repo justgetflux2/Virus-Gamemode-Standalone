@@ -11,6 +11,7 @@ include("shared.lua")
 
 include("sv_message.lua")
 include("sv_thirdperson.lua")
+include("sv_round.lua")
 
 util.AddNetworkString("Virus updateCurrentRound")
 
@@ -18,17 +19,19 @@ util.AddNetworkString("Virus warmupPeriod")
 util.AddNetworkString("Virus roundMusic")
 util.AddNetworkString("Virus survivorsWin")
 
-resource.AddFile("sound/virus/warmupPeriod.mp3")
+local files, directories = file.Find("sound/virus/*", "GAME")
+
+for k, path in pairs(files) do
+	resource.AddFile("sound/virus/" .. path)
+end
 
 --[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) -- TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]
 
+VIRUS = {} -- Gamemode class, NOT the same as the infected players list. TODO Probably change the name of the infected player list.
+
 Virus = {} -- Infected players list
 ModName = "Virus"
-
-local config = {
-	roundTime = 110
-}
 
 local models = {
 	normal = Model("models/player/Group03/male_04.mdl"), -- TODO: This needs to be multiple player models
@@ -43,6 +46,10 @@ local currentRound = {
 }
 
 local createdSprites = {}
+
+function GM:Initialize()
+	setupPhase();
+end
 
 function GM:PlayerInitialSpawn(ply)
 	ply:SetCollisionGroup(11) -- Disables collision with other players.
@@ -65,6 +72,10 @@ function GM:PlayerDeath(victim, Inflictor, killer)
 	victim.fireSprite.child:Remove()
 	victim.fireSprite:Remove()
 	victim:EmitSound("ambient/fire/ignite.waw")
+
+	if victim != killer then -- TODO If we disable suicide then get rid of this if statement
+		killer:SetNWInt("Virus killCount", killer:GetNWInt("Virus killCount") + 1)
+	end
 end
 
 local function makeSprite(pos, target, rate)
@@ -86,6 +97,12 @@ local function makeSprite(pos, target, rate)
 	return sprite
 end
 
+local function registerInfected(ply) -- Internal function
+	table.insert(Virus, ply)
+	ply:SetNWInt("Virus", 1)
+	ply:EmitSound("gmodtower/virus/stinger.mp3")
+end
+
 local function attachFireSprite(target)
 	local pos = target:GetPos() + Vector( 0, -10, 50 )
 	local pos2 = target:GetPos() + Vector( 0, -10, 65 )
@@ -100,7 +117,7 @@ end
 local function configurePlayerAsVirus(ply)
 	ply:SetModel(models.virus)
 
-	ply:SetWalkSpeed(320)
+	ply:SetWalkSpeed(440)
 	ply:SetRunSpeed(530)
 
 	ply:StripWeapons()
@@ -113,7 +130,7 @@ end
 local function configurePlayerAsHuman(ply)
 	ply:SetModel(models.normal)
 
-	ply:SetWalkSpeed(300)
+	ply:SetWalkSpeed(400)
 	ply:SetRunSpeed(525)
 
 	ply:SetNWInt("Virus", 0)
@@ -172,121 +189,6 @@ function GM:PlayerLoadout(ply)
 	return true
 end
 
-util.AddNetworkString("Virus sendStartGUIRoundTimers")
-
-local function startClientsideRoundTimers()
-	net.Start("Virus sendStartGUIRoundTimers")
-	net.WriteInt(config.roundTime, 3)
-	net.Broadcast()
-end
-
-local function registerInfected(ply) -- Internal function
-	table.insert(Virus, ply)
-	ply:SetNWInt("Virus", 1)
-	ply:EmitSound("gmodtower/virus/stinger.mp3")
-end
-
-local function transitionToSetupPhase()
-	currentRound.number = currentRound.number + 1
-
-	if (currentRound.number == 9) then
-		Msg("Changing to the next map.")
-
-		for k, ply in pairs( player.GetAll() ) do
-			ply:ChatPrint("Changing to the next map!") -- Announce it too all players, else they will be confused!
-		end
-
-		timer.Simple(5, function()  -- Give the player 5 seconds to read that the map will change before actually changing it directly at round 4!
-			RunConsoleCommand("changelevel", game.GetMapNext()) -- TODO: GetMapNext() finds maps SET BY the mapcyclefile console command.
-		end)
-
-		return
-	end
-
-	for k, ent in pairs(createdSprites) do
-		if ent == nil || !ent:IsValid() then continue end
-		ent:Remove()
-	end
-
-	for k, ply in pairs(player.GetAll()) do
-		configurePlayerAsHuman(ply) -- TODO: Need to remove sprites from humans
-		ply:Spawn()
-	end
-
-	createdSprites = {}
-	Virus = {}
-
-	setupPhase()
-end
-
-local function roundFinish() -- TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
-	timer.Remove("RoundTimer")
-
-	for k, ply in pairs(player.GetAll()) do
-		net.Start("Virus drawRoundEndPhase")
-		net.WriteInt(#Virus, 2) -- TODO Implement real place system
-		net.Send(ply)
-	end
-
-	net.Start("Virus survivorsWin") -- TODO Sometimes survivors don't win. Obviously.
-	net.Broadcast()
-
-	timer.Simple(6, transitionToSetupPhase) -- TODO: Fine tune the timer. Is it too long or necessary length for the show of rankings?
-end
-
-local function roundStart()
-	currentRound.playerList = player.GetAll()
-	currentRound.noOfPlayers = #currentRound.playerList
-	currentRound.noOfInfected = 0
-
-	generateFirstInfected()
-
-	timer.Create("RoundTimer", config.roundTime, 1, roundFinish)
-
-	sendGamemodeMessage("You're infected, take down the survivors!", 2, false, true)
-	sendGamemodeMessage("You're a survivor. Take down the infected!", 2, true)
-
-	startClientsideRoundTimers()
-
-	net.Start("Virus updateCurrentRound")
-		net.WriteInt(currentRound.number, 10)
-	net.Broadcast()
-
-	net.Start("Virus roundMusic")
-	net.Broadcast()
-end
-
-local function setupPhase()
-	net.Start("Virus warmupPeriod")
-	net.Broadcast()
-
-	timer.Create("minPlayerCheckLoop", 2, 0, function()
-		net.Start("Virus warmupPeriod") -- Makes sure the warmup period plays for new players too.
-		net.Broadcast()
-
-		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			sendGamemodeMessage("Get ready for Round " .. currentRound.number, 3)
-
-			for k, ply in pairs(player.GetAll()) do
-				ply:Respawn()
-			end
-
-			timer.Simple(7, function()
-				sendGamemodeMessage("Ready!", 1)
-				sendGamemodeMessage("Set!", 1)
-			end)
-
-			timer.Simple(9, roundStart)
-
-			timer.Remove("minPlayerCheckLoop")
-		end
-	end)
-end
-
-function GM:Initialize()
-	setupPhase();
-end
-
 local function infectPlayer(ply) -- set ply to nil for a random player
 	registerInfected(ply)
 
@@ -309,7 +211,7 @@ local function generateFirstInfected()
 		elseif players[randomNumber - 1] != nil then
 			randomNumber = randomNumber - 1
 		else
-			error("First infected couldn't be generated due to a significant tick issue.")
+			error("First infected couldn't be generated due to a mysterious lack of players.")
 			roundStart()
 		end
 	end
@@ -317,20 +219,6 @@ local function generateFirstInfected()
 	gracedPlayer = players[randomNumber]
 	infectPlayer(players[randomNumber])
 end
-
-local function checkRoundState()
-	local playerList = player.GetAll()
-
-	if currentRound.noOfInfected == 0 && playerList != nil then
-		generateFirstInfected() -- TODO What happens when there is 1 player left and they get infected?
-	end
-
-	if currentRound.noOfPlayers == currentRound.noOfInfected then
-		roundFinish()
-	end
-end
-
-util.AddNetworkString("Virus roundMusic")
 
 function GM:PlayerDisconnected(ply)
 	if table.HasValue(currentRound.playerList, ply) then

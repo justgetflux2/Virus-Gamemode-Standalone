@@ -1,37 +1,37 @@
-resource.AddFile("materials/hud/hud_infected_radar.vmt")
-resource.AddFile("materials/hud/hud_infected_rank.vmt")
-resource.AddFile("materials/hud/hud_infected_score.vmt")
-resource.AddFile("materials/hud/hud_infected_time.vmt")
+resource.AddFile("materials/hud/virus/hud_infected_radar.vmt")
+resource.AddFile("materials/hud/virus/hud_infected_rank.vmt")
+resource.AddFile("materials/hud/virus/hud_infected_score.vmt")
+resource.AddFile("materials/hud/virus/hud_infected_time.vmt")
 
-resource.AddFile("materials/hud/hud_survivor_radar.vmt")
-resource.AddFile("materials/hud/hud_survivor_rank.vmt")
-resource.AddFile("materials/hud/hud_survivor_score.vmt")
-resource.AddFile("materials/hud/hud_survivor_time.vmt")
+resource.AddFile("materials/hud/virus/hud_survivor_radar.vmt")
+resource.AddFile("materials/hud/virus/hud_survivor_rank.vmt")
+resource.AddFile("materials/hud/virus/hud_survivor_score.vmt")
+resource.AddFile("materials/hud/virus/hud_survivor_time.vmt")
 
-resource.AddFile("materials/hud/hud_survivor_ammo.vmt")
+resource.AddFile("materials/hud/virus/hud_survivor_ammo.vmt")
 
 local materials = { -- TODO Consider adding prefixes to the materials here. It's unlikely there will be conflicts however.
 	clock = {
-		normal = Material("gmod_tower/virus/hud_survivor_time"),
-		infected = Material("gmod_tower/virus/hud_infected_time")
+		normal = Material("hud/virus/hud_survivor_time"),
+		infected = Material("hud/virus/hud_infected_time")
 	},
 	round = {
-		normal = Material("gmod_tower/virus/hud_survivor_round"),
-		infected = Material("gmod_tower/virus/hud_infected_round")
+		normal = Material("hud/virus/hud_survivor_round"),
+		infected = Material("hud/virus/hud_infected_round")
 	},
 	radar = {
-		normal = Material("gmod_tower/virus/hud_survivor_radar"),
-		infected = Material("gmod_tower/virus/hud_infected_radar")
+		normal = Material("hud/virus/hud_survivor_radar"),
+		infected = Material("hud/virus/hud_infected_radar")
 	},
 	score = {
-		normal = Material("gmod_tower/virus/hud_survivor_score"),
-		infected = Material("gmod_tower/virus/hud_infected_score")
+		normal = Material("hud/virus/hud_survivor_score"),
+		infected = Material("hud/virus/hud_infected_score")
 	},
 	rank = {
-		normal = Material("gmod_tower/virus/hud_survivor_rank"),
-		infected = Material("gmod_tower/virus/hud_infected_rank")
+		normal = Material("hud/virus/hud_survivor_rank"),
+		infected = Material("hud/virus/hud_infected_rank")
 	},
-	ammo = Material("gmod_tower/virus/hud_survivor_ammo")
+	ammo = Material("hud/virus/hud_survivor_ammo")
 }
 
 local function drawRoundEndPhase()
