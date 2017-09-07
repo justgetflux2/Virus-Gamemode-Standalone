@@ -57,14 +57,14 @@ local function drawRoundEndPhase()
 	if place != 0 then return end
 
 	if !transitionStarted then
-		timer.Simple(3, function()
+		timer.Simple(6, function()
 			roundEndPhase = false
 			transitionStarted = false
 			place = nil
 		end)
 
 		transitionStarted = true
-		playGamemodeMessage(place .. ending .. " Place")
+		playGamemodeMessage(place .. ending .. " Place", 6)
 	end
 end
 
@@ -73,8 +73,8 @@ net.Receive("Virus drawRoundEndPhase", function()
 end)
 
 local function drawClock()
-	local mins = math.floor(GAMEMODE.timeLeft / 60)
-	local secs = GAMEMODE.timeLeft % 60
+	local mins = math.floor(VIRUS.currentRound.timeLeft / 60)
+	local secs = VIRUS.currentRound.timeLeft % 60
 	local separator = ":"
 	if secs < 10 then separator = ":0" end
 
@@ -157,13 +157,12 @@ function GM:HUDShouldDraw(name)
 end
 
 local function initialiseRoundTimer()
-	GAMEMODE.timeLeft = VIRUS.config.roundTime -- TODO Probably get rid of the use of global GAMEMODE usage, it doesn't need public privacy.
+	VIRUS.currentRound.timeLeft = VIRUS.config.roundTime -- TODO Probably get rid of the use of global GAMEMODE usage, it doesn't need public privacy.
 
 	timer.Create("Virus roundTimerDecrementer",1,0,function()
-		GAMEMODE.timeLeft = GAMEMODE.timeLeft - 1
+		VIRUS.currentRound.timeLeft = VIRUS.currentRound.timeLeft - 1
 
-		if GAMEMODE.timeLeft == 0 then
-			surface.PlaySound("gmodtower/virus/announce_survivorswin.wav")
+		if VIRUS.currentRound.timeLeft == 0 then
 			timer.Remove("Virus roundTimerDecrementer")
 		end
 	end)

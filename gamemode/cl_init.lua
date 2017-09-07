@@ -15,7 +15,8 @@ VIRUS.currentRound = {
 	   number = 1,
 	   playerList = {},
 	   noOfPlayers = 0,
-	   noOfInfected = 0
+	   noOfInfected = 0,
+	   timeLeft = 0
 }
 
 surface.CreateFont( "VirusHUD", {
@@ -42,11 +43,6 @@ surface.CreateFont( "fuckhd", {
 	antialias = true,
 	additive = false,
 })
-
-function GM:Initialize()
-	GAMEMODE.message = "Waiting for at least 4 players..." -- TODO Change how this works. Public privacy is not needed.
-	GAMEMODE.timeLeft = 0
-end
 
 function GM:PlayerBindPress(ply, bind, pressed)
 	if !pressed then return false end

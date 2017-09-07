@@ -13,7 +13,12 @@ include("sv_message.lua")
 include("sv_thirdperson.lua")
 
 util.AddNetworkString("Virus updateCurrentRound")
+
+util.AddNetworkString("Virus warmupPeriod")
 util.AddNetworkString("Virus roundMusic")
+util.AddNetworkString("Virus survivorsWin")
+
+resource.AddFile("sound/virus/warmupPeriod.mp3")
 
 --[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) -- TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]
@@ -38,10 +43,6 @@ local currentRound = {
 }
 
 local createdSprites = {}
-
-function GM:Initialize()
-	setupPhase();
-end
 
 function GM:PlayerInitialSpawn(ply)
 	ply:SetCollisionGroup(11) -- Disables collision with other players.
@@ -163,8 +164,14 @@ function GM:PlayerLoadout(ply)
 	return true
 end
 
-function setupPhase()
+local function setupPhase()
+	net.Start("Virus warmupPeriod")
+	net.Broadcast()
+
 	timer.Create("minPlayerCheckLoop", 2, 0, function()
+		net.Start("Virus warmupPeriod") -- Makes sure the warmup period plays for new players too.
+		net.Broadcast()
+
 		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
 			sendGamemodeMessage("Get ready for Round " .. currentRound.number, 3)
 
@@ -182,6 +189,10 @@ function setupPhase()
 			timer.Remove("minPlayerCheckLoop")
 		end
 	end)
+end
+
+function GM:Initialize()
+	setupPhase();
 end
 
 util.AddNetworkString("Virus sendStartGUIRoundTimers")
@@ -291,6 +302,9 @@ function roundFinish() -- TODO: Remove or revise forced mechanic, unless if amou
 	timer.Remove("RoundTimer")
 
 	net.Start("Virus drawRoundEndPhase")
+	net.Broadcast()
+
+	net.Start("Virus survivorsWin")
 	net.Broadcast()
 
 	for i, ply in ipairs( Virus ) do -- TODO: This mechanic is slightly redundant. Players who start off infected should probably have their performance compared to other infected, not to the game in general.
