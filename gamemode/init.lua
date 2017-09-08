@@ -236,6 +236,7 @@ util.AddNetworkString("Virus hitDetection")
 net.Receive("Virus hitDetection", function(len, ply)
 	local target = net.ReadEntity()
 	if target:GetNWInt("Virus") == 1 then return end
+	if ply:Alive() == false then return end
 	infectPlayer(target)
 end)
 

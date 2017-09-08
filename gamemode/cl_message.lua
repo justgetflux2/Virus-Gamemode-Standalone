@@ -3,9 +3,13 @@ local currentlyPlayingMessage = false
 
 function playGamemodeMessage(queueMessage, duration)
 	local data = {
-		msg = net.ReadString(32) or queueMessage,
-		aliveTime = (net.ReadInt(10) or duration) or 1
+		msg = queueMessage,
+		aliveTime = duration or 1
 	}
+
+	print("FOR " .. queueMessage)
+	print(data.msg)
+	print(data.aliveTime)
 
 	if currentlyPlayingMessage then
 		table.insert(pendingMessages, data)
@@ -60,4 +64,9 @@ function playGamemodeMessage(queueMessage, duration)
 	end)
 end
 
-net.Receive("Virus sendGamemodeMessage", playGamemodeMessage)
+net.Receive("Virus sendGamemodeMessage", function()
+	local msg = net.ReadString(32)
+	local aliveTime = net.ReadInt(10)
+
+	playGamemodeMessage(msg, aliveTime)
+end)

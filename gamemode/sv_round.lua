@@ -112,6 +112,7 @@ function VIRUS.roundFinish() -- TODO: Remove or revise forced mechanic, unless i
 
 	for k, ply in pairs(player.GetAll()) do
 		net.Start("Virus drawRoundEndPhase")
+		print(table.KeyFromValue(leaderboard,ply))
 		net.WriteInt(table.KeyFromValue(leaderboard, ply), 2)
 		net.Send(ply)
 	end
@@ -126,7 +127,7 @@ function VIRUS.checkRoundState()
 	local playerList = player.GetAll()
 
 	if VIRUS.currentRound.noOfInfected == 0 && playerList != nil then
-		generateFirstInfected() -- TODO What happens when there is 1 player left and they get infected?
+		VIRUS.generateFirstInfected() -- TODO What happens when there is 1 player left and they get infected?
 	end
 
 	if VIRUS.currentRound.noOfPlayers == VIRUS.currentRound.noOfInfected then
