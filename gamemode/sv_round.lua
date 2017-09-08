@@ -3,18 +3,18 @@ util.AddNetworkString("Virus sendStartGUIRoundTimers")
 
 local function startClientsideRoundTimers()
 	net.Start("Virus sendStartGUIRoundTimers")
-	net.WriteInt(config.roundTime, 3)
+	net.WriteInt(VIRUS.config.roundTime, 3)
 	net.Broadcast()
 end
 
-local function roundStart()
-	currentRound.playerList = player.GetAll()
-	currentRound.noOfPlayers = #currentRound.playerList
-	currentRound.noOfInfected = 0
+function VIRUS.roundStart()
+	VIRUS.currentRound.playerList = player.GetAll()
+	VIRUS.currentRound.noOfPlayers = #VIRUS.currentRound.playerList
+	VIRUS.currentRound.noOfInfected = 0
 
-	generateFirstInfected()
+	VIRUS.generateFirstInfected()
 
-	timer.Create("RoundTimer", config.roundTime, 1, VIRUS.roundFinish)
+	timer.Create("RoundTimer", VIRUS.config.roundTime, 1, VIRUS.roundFinish)
 
 	sendGamemodeMessage("You're infected, take down the survivors!", 2, false, true)
 	sendGamemodeMessage("You're a survivor. Take down the infected!", 2, true)
@@ -26,14 +26,14 @@ local function roundStart()
 	end
 
 	net.Start("Virus updateCurrentRound")
-		net.WriteInt(currentRound.number, 10)
+		net.WriteInt(VIRUS.currentRound.number, 10)
 	net.Broadcast()
 
 	net.Start("Virus roundMusic")
 	net.Broadcast()
 end
 
-function VIRUS.setupPhase()
+local function setupPhase()
 	net.Start("Virus warmupPeriod")
 	net.Broadcast()
 
@@ -42,7 +42,7 @@ function VIRUS.setupPhase()
 		net.Broadcast()
 
 		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			sendGamemodeMessage("Get ready for Round " .. currentRound.number, 3)
+			sendGamemodeMessage("Get ready for Round " .. VIRUS.currentRound.number, 3)
 
 			for k, ply in pairs(player.GetAll()) do
 				ply:Respawn()
@@ -53,17 +53,21 @@ function VIRUS.setupPhase()
 				sendGamemodeMessage("Set!", 1)
 			end)
 
-			timer.Simple(9, roundStart)
+			timer.Simple(9, VIRUS.roundStart)
 
 			timer.Remove("minPlayerCheckLoop")
 		end
 	end)
 end
 
-local function transitionToSetupPhase()
-	currentRound.number = currentRound.number + 1
+function GM:Initialize()
+	setupPhase();
+end
 
-	if (currentRound.number == 9) then
+local function transitionToSetupPhase()
+	VIRUS.currentRound.number = VIRUS.currentRound.number + 1
+
+	if (VIRUS.currentRound.number == 9) then
 		Msg("Changing to the next map.")
 
 		for k, ply in pairs( player.GetAll() ) do
@@ -77,20 +81,20 @@ local function transitionToSetupPhase()
 		return
 	end
 
-	for k, ent in pairs(createdSprites) do
+	for k, ent in pairs(VIRUS.createdSprites) do
 		if ent == nil || !ent:IsValid() then continue end
 		ent:Remove()
 	end
 
 	for k, ply in pairs(player.GetAll()) do
-		configurePlayerAsHuman(ply) -- TODO: Need to remove sprites from humans
+		VIRUS.configurePlayerAsHuman(ply) -- TODO: Need to remove sprites from humans
 		ply:Spawn()
 	end
 
-	createdSprites = {}
+	VIRUS.createdSprites = {}
 	Virus = {}
 
-	VIRUS.setupPhase()
+	setupPhase()
 end
 
 function VIRUS.roundFinish() -- TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
@@ -121,11 +125,11 @@ end
 function VIRUS.checkRoundState()
 	local playerList = player.GetAll()
 
-	if currentRound.noOfInfected == 0 && playerList != nil then
+	if VIRUS.currentRound.noOfInfected == 0 && playerList != nil then
 		generateFirstInfected() -- TODO What happens when there is 1 player left and they get infected?
 	end
 
-	if currentRound.noOfPlayers == currentRound.noOfInfected then
-		roundFinish()
+	if VIRUS.currentRound.noOfPlayers == VIRUS.currentRound.noOfInfected then
+		VIRUS.roundFinish()
 	end
 end

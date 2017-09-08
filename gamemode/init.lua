@@ -1,3 +1,5 @@
+VIRUS = {} -- Gamemode class, NOT the same as the infected players list. TODO Probably change the name of the infected player list.
+
 AddCSLuaFile("shared.lua")
 
 AddCSLuaFile("cl_init.lua")
@@ -28,28 +30,26 @@ end
 --[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) -- TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]
 
-VIRUS = {} -- Gamemode class, NOT the same as the infected players list. TODO Probably change the name of the infected player list.
-
 Virus = {} -- Infected players list
 ModName = "Virus"
+
+VIRUS.config = {
+	roundTime = 120
+}
 
 local models = {
 	normal = Model("models/player/Group03/male_04.mdl"), -- TODO: This needs to be multiple player models
 	virus = Model("models/player/virusi.mdl")
 }
 
-local currentRound = {
+VIRUS.currentRound = {
 	number = 1,
 	playerList = {},
 	noOfPlayers = 0,
 	noOfInfected = 0
 }
 
-local createdSprites = {}
-
-function GM:Initialize()
-	setupPhase();
-end
+VIRUS.createdSprites = {}
 
 function GM:PlayerInitialSpawn(ply)
 	ply:SetCollisionGroup(11) -- Disables collision with other players.
@@ -93,7 +93,7 @@ local function makeSprite(pos, target, rate)
 	sprite:SetParent(target)
 	sprite:Spawn()
 
-	table.insert(createdSprites, sprite)
+	table.insert(VIRUS.createdSprites, sprite)
 	return sprite
 end
 
@@ -114,7 +114,7 @@ local function attachFireSprite(target)
 	target.fireSprite = sprite1
 end
 
-local function configurePlayerAsVirus(ply)
+function VIRUS.configurePlayerAsVirus(ply)
 	ply:SetModel(models.virus)
 
 	ply:SetWalkSpeed(440)
@@ -124,10 +124,9 @@ local function configurePlayerAsVirus(ply)
 	ply:StripAmmo()
 
 	attachFireSprite(ply)
-	ply:EmitSound("gmodtower/virus/player_spawn.wav")
 end
 
-local function configurePlayerAsHuman(ply)
+function VIRUS.configurePlayerAsHuman(ply)
 	ply:SetModel(models.normal)
 
 	ply:SetWalkSpeed(400)
@@ -160,9 +159,9 @@ local otherWeaponsSet1 = {
 
 function GM:PlayerLoadout(ply)
 	if ply:GetNWInt("Virus") == 1 then
-		configurePlayerAsVirus(ply)
+		VIRUS.configurePlayerAsVirus(ply)
 	else
-		configurePlayerAsHuman(ply)
+		VIRUS.configurePlayerAsHuman(ply)
 
 		ply:StripWeapons()
 		ply:StripAmmo()
@@ -193,15 +192,15 @@ local function infectPlayer(ply) -- set ply to nil for a random player
 	registerInfected(ply)
 
 	enableThirdPerson(ply)
-	configurePlayerAsVirus(ply)
+	VIRUS.configurePlayerAsVirus(ply)
 
-	currentRound.noOfInfected = currentRound.noOfInfected + 1
-	checkRoundState()
+	VIRUS.currentRound.noOfInfected = VIRUS.currentRound.noOfInfected + 1
+	VIRUS.checkRoundState()
 end
 
 local gracedPlayer
 
-local function generateFirstInfected()
+function VIRUS.generateFirstInfected()
 	local players = player.GetAll()
 	local randomNumber = math.random(#players)
 
@@ -212,7 +211,7 @@ local function generateFirstInfected()
 			randomNumber = randomNumber - 1
 		else
 			error("First infected couldn't be generated due to a mysterious lack of players.")
-			roundStart()
+			VIRUS.roundStart()
 		end
 	end
 
@@ -221,11 +220,11 @@ local function generateFirstInfected()
 end
 
 function GM:PlayerDisconnected(ply)
-	if table.HasValue(currentRound.playerList, ply) then
-		currentRound.noOfPlayers = currentRound.noOfPlayers - 1
+	if table.HasValue(VIRUS.currentRound.playerList, ply) then
+		VIRUS.currentRound.noOfPlayers = VIRUS.currentRound.noOfPlayers - 1
 
 		if ply:GetNWInt("Virus") == 1 then
-			currentRound.noOfInfected = currentRound.noOfInfected - 1
+			VIRUS.currentRound.noOfInfected = VIRUS.currentRound.noOfInfected - 1
 		end
 
 		checkRoundState()
@@ -250,5 +249,5 @@ end
 
 hook.Add("EntityTakeDamage", "survivorNoDamage", survivorNoDamage)
 
-concommand.Add("endround", roundFinish)
+concommand.Add("endround", VIRUS.roundFinish)
 concommand.Add("infect", function(ply, cmd, args, argStr) infectPlayer(ply) end)
