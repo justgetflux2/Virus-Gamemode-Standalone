@@ -22,7 +22,9 @@ local function serializeFields()
 			[3] = Sound("virus/ui/menu.wav")
 		}
 
-		Music.warmupPeriod = CreateSound(playerObject, "virus/warmupPeriod.mp3")
+		Music.waitingForPlayers = CreateSound(playerObject, "virus/warmupPeriod.mp3")
+
+		Music.warmupPeriod = CreateSound(playerObject, "virus/waiting_forinfection2.mp3")
 	end)
 end
 
@@ -36,6 +38,10 @@ function Music:play(soundObj)
 	soundObj:Stop() -- We have to do this so that it's reset and able to be played. If it's played before, it wouldn't play again.
 	soundObj:Play()
 	Music.currentlyPlaying = soundObj
+end
+
+function Music:playWaitingForPlayers()
+	Music:play(Music.waitingForPlayers)
 end
 
 function Music:playWarmupPeriod()
@@ -55,3 +61,8 @@ function Music:playSurvivorWin()
 	surface.PlaySound(Music.survivorsWin[3])
 end
 net.Receive("Virus survivorsWin", Music.playSurvivorWin)
+
+local function infectedStinger()
+	surface.PlaySound(Music.stinger)
+end
+net.Receive("Virus onInfected", infectedStinger)

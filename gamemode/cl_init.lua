@@ -19,31 +19,6 @@ VIRUS.currentRound = {
 	   timeLeft = 0
 }
 
-surface.CreateFont( "VirusHUD", {
-	font = "Impact",
-	size = 36,
-	weight = 200,
-	antialias = true,
-	additive = false,
-	outline = true
-})
-
-surface.CreateFont( "Important", {
-	font = "Arial",
-	size = 72,
-	weight = 200,
-	antialias = true,
-	additive = false,
-})
-
-surface.CreateFont( "fuckhd", {
-	font = "reactor-sans",
-	size = 28,
-	weight = 200,
-	antialias = true,
-	additive = false,
-})
-
 function GM:PlayerBindPress(ply, bind, pressed)
 	if !pressed then return false end
 

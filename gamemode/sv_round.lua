@@ -33,31 +33,31 @@ function VIRUS.roundStart()
 	net.Broadcast()
 end
 
-local function setupPhase()
-	net.Start("Virus warmupPeriod")
-	net.Broadcast()
+util.AddNetworkString("Virus waitingForPlayers")
 
-	timer.Create("minPlayerCheckLoop", 2, 0, function()
-		net.Start("Virus warmupPeriod") -- Makes sure the warmup period plays for new players too.
+local function setupPhase()
+	if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
+		net.Start("Virus warmupPeriod")
 		net.Broadcast()
 
-		if  #player.GetAll() >= MINIMUM_PLAYER_AMOUNT then
-			sendGamemodeMessage("Get ready for Round " .. VIRUS.currentRound.number, 3)
+		sendGamemodeMessage("Get ready for Round " .. VIRUS.currentRound.number, 3)
 
-			for k, ply in pairs(player.GetAll()) do
-				ply:Respawn()
-			end
-
-			timer.Simple(7, function()
-				sendGamemodeMessage("Ready!", 1)
-				sendGamemodeMessage("Set!", 1)
-			end)
-
-			timer.Simple(9, VIRUS.roundStart)
-
-			timer.Remove("minPlayerCheckLoop")
+		for k, ply in pairs(player.GetAll()) do
+			ply:Respawn()
 		end
-	end)
+
+		timer.Simple(7, function()
+			sendGamemodeMessage("Ready!", 1)
+			sendGamemodeMessage("Set!", 1)
+		end)
+
+		timer.Simple(9, VIRUS.roundStart)
+	else
+		net.Start("Virus waitingForPlayers")
+		net.Broadcast()
+
+		timer.Simple(2, setupPhase)
+	end
 end
 
 function GM:Initialize()

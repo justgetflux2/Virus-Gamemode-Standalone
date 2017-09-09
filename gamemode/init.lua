@@ -21,11 +21,15 @@ util.AddNetworkString("Virus warmupPeriod")
 util.AddNetworkString("Virus roundMusic")
 util.AddNetworkString("Virus survivorsWin")
 
+-- Sending file resources --
+
 local files, directories = file.Find("sound/virus/*", "GAME")
 
 for k, path in pairs(files) do
 	resource.AddFile("sound/virus/" .. path)
 end
+
+-- Sending file resources --
 
 --[[local model = LocalPlayer():GetInfo( "cl_playermodel" ) -- TODO add custom models
 local modelname = player_manager.TranslatePlayerModel( model )]]
@@ -100,7 +104,6 @@ end
 local function registerInfected(ply) -- Internal function
 	table.insert(Virus, ply)
 	ply:SetNWInt("Virus", 1)
-	ply:EmitSound("gmodtower/virus/stinger.mp3")
 end
 
 local function attachFireSprite(target)
@@ -117,7 +120,7 @@ end
 function VIRUS.configurePlayerAsVirus(ply)
 	ply:SetModel(models.virus)
 
-	ply:SetWalkSpeed(440)
+	ply:SetWalkSpeed(341)
 	ply:SetRunSpeed(530)
 
 	ply:StripWeapons()
@@ -129,7 +132,7 @@ end
 function VIRUS.configurePlayerAsHuman(ply)
 	ply:SetModel(models.normal)
 
-	ply:SetWalkSpeed(400)
+	ply:SetWalkSpeed(310)
 	ply:SetRunSpeed(525)
 
 	ply:SetNWInt("Virus", 0)
@@ -188,6 +191,8 @@ function GM:PlayerLoadout(ply)
 	return true
 end
 
+util.AddNetworkString("Virus onInfected")
+
 local function infectPlayer(ply) -- set ply to nil for a random player
 	registerInfected(ply)
 
@@ -195,6 +200,11 @@ local function infectPlayer(ply) -- set ply to nil for a random player
 	VIRUS.configurePlayerAsVirus(ply)
 
 	VIRUS.currentRound.noOfInfected = VIRUS.currentRound.noOfInfected + 1
+
+	net.Start("Virus onInfected")
+	net.WriteString(ply:Nick(), 32)
+	net.Broadcast()
+
 	VIRUS.checkRoundState()
 end
 
@@ -227,7 +237,7 @@ function GM:PlayerDisconnected(ply)
 			VIRUS.currentRound.noOfInfected = VIRUS.currentRound.noOfInfected - 1
 		end
 
-		checkRoundState()
+		VIRUS.checkRoundState()
 	end
 end
 
