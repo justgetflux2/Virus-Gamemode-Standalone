@@ -16,7 +16,7 @@ for k, path in pairs(files) do
 	resource.AddFile("materials/hud/virus/" .. path)
 end
 
-local materials = { -- TODO Consider adding prefixes to the materials here. It's unlikely there will be conflicts however.
+local materials = {
 	clock = {
 		normal = Material("hud/virus/hud_survivor_time"),
 		infected = Material("hud/virus/hud_infected_time")
@@ -147,7 +147,6 @@ function GM:HUDPaint()
 	drawClock()
 	drawRoundNumber()
 	pcall(drawAmmo) -- Run through pcall() so errors aren't returned.
-	--drawImportantMessage() TODO Reimplement
 end
 
 local hide = {
@@ -166,7 +165,7 @@ function GM:HUDShouldDraw(name)
 end
 
 local function initialiseRoundTimer()
-	VIRUS.currentRound.timeLeft = VIRUS.config.roundTime -- TODO Probably get rid of the use of global GAMEMODE usage, it doesn't need public privacy.
+	VIRUS.currentRound.timeLeft = VIRUS.config.roundTime
 
 	timer.Create("Virus roundTimerDecrementer",1,0,function()
 		VIRUS.currentRound.timeLeft = VIRUS.currentRound.timeLeft - 1

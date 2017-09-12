@@ -71,7 +71,7 @@ local function transitionToSetupPhase()
 		Msg("Changing to the next map.")
 
 		for k, ply in pairs( player.GetAll() ) do
-			ply:ChatPrint("Changing to the next map!") -- Announce it too all players, else they will be confused!
+			ply:ChatPrint("Changing to the next map!")
 		end
 
 		timer.Simple(5, function()  -- Give the player 5 seconds to read that the map will change before actually changing it directly at round 4!
@@ -87,7 +87,7 @@ local function transitionToSetupPhase()
 	end
 
 	for k, ply in pairs(player.GetAll()) do
-		VIRUS.configurePlayerAsHuman(ply) -- TODO: Need to remove sprites from humans
+		VIRUS.configurePlayerAsHuman(ply)
 		ply:Spawn()
 	end
 
@@ -97,7 +97,7 @@ local function transitionToSetupPhase()
 	setupPhase()
 end
 
-function VIRUS.roundFinish() -- TODO: Remove or revise forced mechanic, unless if amount of players dips below a threshold we need to force end the game at some point.
+function VIRUS.roundFinish()
 	timer.Remove("RoundTimer")
 
 	local leaderboard = {}

@@ -23,7 +23,7 @@ util.AddNetworkString("Virus survivorsWin")
 
 -- Sending file resources --
 
-local files, directories = file.Find("sound/virus/*", "GAME")
+local files = file.Find("sound/virus/*", "GAME")
 
 for k, path in pairs(files) do
 	resource.AddFile("sound/virus/" .. path)
@@ -69,7 +69,7 @@ function GM:PlayerDisconnected(ply)
 end
 
 function GM:CanPlayerSuicide(ply)
-	return true -- TODO Change back to false when not debugging.
+	return false -- TODO Change back to false when not debugging.
 end
 
 function GM:PlayerDeath(victim, Inflictor, killer)
