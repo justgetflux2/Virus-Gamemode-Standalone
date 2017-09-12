@@ -120,7 +120,7 @@ end
 function VIRUS.configurePlayerAsVirus(ply)
 	ply:SetModel(models.virus)
 
-	ply:SetWalkSpeed(341)
+	ply:SetWalkSpeed(308)
 	ply:SetRunSpeed(530)
 
 	ply:StripWeapons()
@@ -132,7 +132,7 @@ end
 function VIRUS.configurePlayerAsHuman(ply)
 	ply:SetModel(models.normal)
 
-	ply:SetWalkSpeed(310)
+	ply:SetWalkSpeed(300)
 	ply:SetRunSpeed(525)
 
 	ply:SetNWInt("Virus", 0)
