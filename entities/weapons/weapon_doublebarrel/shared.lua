@@ -10,6 +10,7 @@ SWEP.SlotPos		 = 0
 
 SWEP.ViewModel		 = "models/weapons/v_vir_doubleb.mdl"
 SWEP.WorldModel		 = "models/weapons/w_vir_doubleb.mdl"
+SWEP.WepSelectIcon   = "materials/gmod_tower/virus/icons/weapon_doublebarrel"
 SWEP.HoldType		 = "shotgun"
 --SWEP.ViewModelFlip			= true
 SWEP.ViewModelFlip			= false

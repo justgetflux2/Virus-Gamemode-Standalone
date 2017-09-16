@@ -10,6 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel			 = "models/weapons/v_vir_snp.mdl"
 SWEP.WorldModel			 = "models/weapons/w_vir_snp.mdl"
+SWEP.WepSelectIcon       = "materials/gmod_tower/virus/icons/weapon_sniperrifle"
 SWEP.HoldType			 = "ar2"
 
 SWEP.Primary.Delay	 = 1

@@ -10,6 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel		 = "models/weapons/v_vir_dsilen.mdl"
 SWEP.WorldModel		 = "models/weapons/w_vir_dsilen.mdl"
+SWEP.WepSelectIcon   = "materials/gmod_tower/virus/icons/weapon_silencers"
 SWEP.ViewModelFlip	 = true
 
 SWEP.HoldType		= "duel"

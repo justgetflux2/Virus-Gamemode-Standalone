@@ -10,6 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel			 = "models/weapons/v_rcp120.mdl"
 SWEP.WorldModel			 = "models/weapons/w_rcp120.mdl"
+SWEP.WepSelectIcon       = "materials/gmod_tower/virus/icons/weapon_rcp120"
 SWEP.HoldType			 = "ar2"
 
 SWEP.Primary.Automatic	 = true
