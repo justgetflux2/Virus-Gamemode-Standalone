@@ -10,7 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel		 = "models/weapons/v_vir_scattergun.mdl"
 SWEP.WorldModel		 = "models/weapons/w_vir_scattergun.mdl"
-SWEP.WepSelectIcon       = "materials/gmod_tower/virus/icons/weapon_sonicshotgun"
+SWEP.WepSelectIcon       = surface.GetTextureID("materials/gmod_tower/virus/icons/weapon_sonicshotgun")
 SWEP.HoldType		 = "shotgun"
 SWEP.ViewModelFlip	 = false
 

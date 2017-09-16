@@ -10,7 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel		 = "models/weapons/v_vir_scifihg.mdl"
 SWEP.WorldModel		 = "models/weapons/w_vir_9mm1.mdl"
-SWEP.WepSelectIcon       = "materials/gmod_tower/virus/icons/weapon_scifihandgun"
+SWEP.WepSelectIcon       = surface.GetTextureID("materials/gmod_tower/virus/icons/weapon_scifihandgun")
 SWEP.ViewModelFlip	 = true
 
 SWEP.HoldType		= "pistol"

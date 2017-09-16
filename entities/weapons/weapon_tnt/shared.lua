@@ -10,7 +10,7 @@ SWEP.SlotPos		 = 0
 
 SWEP.ViewModel			 = "models/weapons/v_vir_tnt.mdl"
 SWEP.WorldModel			 = "models/weapons/w_vir_tnt.mdl"
-SWEP.WepSelectIcon       = "materials/gmod_tower/virus/icons/weapon_tnt"
+SWEP.WepSelectIcon       = surface.GetTextureID("materials/gmod_tower/virus/icons/weapon_tnt")
 SWEP.ViewModelFlip		 = false
 SWEP.HoldType			 = "grenade"
 

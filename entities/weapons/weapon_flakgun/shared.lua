@@ -10,7 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel		 = "models/weapons/v_vir_flakhg.mdl"
 SWEP.WorldModel		 = "models/weapons/w_pvp_ragingb.mdl"
-SWEP.WepSelectIcon   = "materials/gmod_tower/virus/icons/weapon_flakhandgun"
+SWEP.WepSelectIcon   = surface.GetTextureID("materials/gmod_tower/virus/icons/weapon_flakhandgun")
 SWEP.HoldType		 = "pistol"
 
 SWEP.Primary.Delay	 = 0.5

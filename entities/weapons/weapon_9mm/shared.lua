@@ -10,7 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel		 = "models/weapons/v_vir_9mm1.mdl"
 SWEP.WorldModel		 = "models/weapons/w_vir_9mm1.mdl"
-SWEP.WepSelectIcon   = "materials/gmod_tower/virus/icons/weapon_9mm"
+SWEP.WepSelectIcon   = surface.GetTextureID("materials/gmod_tower/virus/icons/weapon_9mm")
 SWEP.ViewModelFlip	 = true
 SWEP.ViewModelFOV = 81.74036340625
 

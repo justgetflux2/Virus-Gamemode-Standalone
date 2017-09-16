@@ -10,7 +10,7 @@ SWEP.SlotPos		 = 1
 
 SWEP.ViewModel			 = "models/weapons/v_vir_tom.mdl"
 SWEP.WorldModel			 = "models/weapons/w_vir_tom.mdl"
-SWEP.WepSelectIcon       = "materials/gmod_tower/virus/icons/weapon_tommygun"
+SWEP.WepSelectIcon       = surface.GetTextureID("materials/gmod_tower/virus/icons/weapon_tommygun")
 SWEP.ViewModelFlip		 = true
 SWEP.HoldType			 = "ar2"
 
