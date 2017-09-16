@@ -1,1 +1,1 @@
-SWEP.WepSelectIcon   = surface.GetTextureID("materials/gmod_tower/virus/icons/weapon_9mm")
+SWEP.WepSelectIcon   = surface.GetTextureID("gmod_tower/virus/icons/weapon_9mm")
