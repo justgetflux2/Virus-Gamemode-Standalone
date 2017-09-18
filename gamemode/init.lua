@@ -1,14 +1,16 @@
 //CS Lua file
 AddCSLuaFile("cl_init.lua");
+AddCSLuaFile("shared.lua")
 
 //Includes
-include("shared.lua");
-
 include("player_classes/infected.lua");
 include("player_classes/neutral.lua");
 include("player_classes/spectator.lua");
 include("player_classes/survivor.lua");
+include("sv_meta.lua");
 include("sv_rounds.lua");
+
+include("shared.lua");
 
 function GM:Initialize()
     
@@ -17,6 +19,7 @@ end
 function GM:PlayerInitialSpawn(ply)
     timer.Simple(0.1, function()
         ply:KillSilent();
+        ply:SetCustomCollisionCheck(true)
         InitialSpawnCheck(ply);
     end)
 end
