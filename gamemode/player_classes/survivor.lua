@@ -1,4 +1,5 @@
 //Survivor player class
+//Walking speed is 300, with adrenaline it's 350. (Thanks uNhApPYfAtGrANdMa :^))
 
 local PLAYER = {}
 
